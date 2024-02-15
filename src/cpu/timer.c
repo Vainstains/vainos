@@ -1,6 +1,6 @@
 #include "timer.h"
 #include "../drivers/vga.h"
-#include "../util/util.h"
+#include "../libc/mem.h"
 #include "isr.h"
 
 uint32_t tick = 0;

@@ -3,6 +3,7 @@
 #include "../cpu/idt.h"
 #include "../drivers/keyboard.h"
 
+
 void main() {
     vgaWriteln("Loading...");
 

@@ -1,26 +1,9 @@
-#include "../types.h"
-
-void memoryCopy(char *source, char *dest, int nbytes) {
-    int i;
-    for (i = 0; i < nbytes; i++) {
-        *(dest + i) = *(source + i);
-    }
-}
-
-void memorySet(char *dest, char val, int nbytes) {
-    int i;
-    for (i = 0; i < nbytes; i++) {
-        *(dest + i) = val;
-    }
-}
-
-/* K&R */
 int strlen(char s[]) {
     int i = 0;
     while (s[i] != '\0') ++i;
     return i;
 }
-/* K&R */
+
 void reverse(char s[]) {
     int c, i, j;
     for (i = 0, j = strlen(s)-1; i < j; i++, j--) {
@@ -29,7 +12,7 @@ void reverse(char s[]) {
         s[j] = c;
     }
 }
-/* K&R */
+
 void int_to_ascii(int n, char str[]) {
     int i, sign;
     if ((sign = n) < 0) n = -n;
@@ -61,4 +44,14 @@ void append(char s[], char n) {
 void backspace(char s[]) {
     int len = strlen(s);
     s[len-1] = '\0';
+}
+
+int findchar(char s[], char c) {
+    int i;
+    for (i = 0; s[i] != '\0'; i++) {
+        if (s[i] == c) {
+            return i;
+        }
+    }
+    return -1;
 }
