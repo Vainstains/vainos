@@ -1,0 +1,12 @@
+#if !defined(ATA_H)
+#define ATA_H
+
+#define ATA_IO_PORT_BASE_PRIMARY 0x1F0
+#define ATA_IO_PORT_BASE_SECONDARY 0x170
+
+#define ATA_CONTROL_PORT_BASE_PRIMARY 0x3F6
+#define ATA_CONTROL_PORT_BASE_SECONDARY 0x376
+
+void test();
+
+#endif // ATA_H

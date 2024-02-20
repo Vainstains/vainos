@@ -1,3 +1,5 @@
+#include "string.h"
+
 int strlen(char s[]) {
     int i = 0;
     while (s[i] != '\0') ++i;
@@ -27,6 +29,17 @@ void int_to_ascii(int n, char str[]) {
     reverse(str);
 }
 
+void byte_to_ascii(uint8_t byte, char str[]) {
+    int i = 0;
+    do {
+        str[i++] = byte % 10 + '0';
+    } while ((byte /= 10) > 0);
+
+    str[i] = '\0';
+
+    reverse(str);
+}
+
 int strcmp(char s1[], char s2[]) {
     int i;
     for (i = 0; s1[i] == s2[i]; i++) {
@@ -41,9 +54,13 @@ void append(char s[], char n) {
     s[len+1] = '\0';
 }
 
-void backspace(char s[]) {
+char backspace(char s[]) {
     int len = strlen(s);
+    if (len == 0) {
+        return 0;
+    }
     s[len-1] = '\0';
+    return 1;
 }
 
 int findchar(char s[], char c) {

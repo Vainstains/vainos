@@ -1,4 +1,5 @@
 #! /bin/bash
+
 CUR_DIR=$(pwd)
 BIN="$CUR_DIR"/bin/misc
 BINFINAL="$CUR_DIR"/bin
@@ -33,4 +34,8 @@ cat "$BIN"/bootsect.bin "$BIN"/kernel.bin > "$BINFINAL"/os-image.bin
 cd "$CUR_DIR" || exit
 
 # Run image
-qemu-system-i386 -fda bin/os-image.bin -D ./log.txt -d cpu_reset -no-reboot
+qemu-system-i386 -fda bin/os-image.bin \
+                 -D ./log.txt \
+                 -d cpu_reset \
+                 -no-reboot \
+                 -vga std

@@ -114,12 +114,22 @@ void vgaWriteln(char *string) {
 
 void vgaWriteBackspace() {
     int cursor = vgaGetCursor();
+    char *vga = (char*)VGA_ADDRESS;
+    vga[cursor-2] = 0x00; 
+    vga[cursor-1] = 0x0f;
     vgaSetCursor(cursor-2);
 }
 
 void vgaWriteInt(int num) {
     char buffer[256];
     int_to_ascii(num, buffer);
+
+    vgaWrite(buffer);
+}
+
+void vgaWriteByte(uint8_t num) {
+    char buffer[4];
+    byte_to_ascii(num, buffer);
 
     vgaWrite(buffer);
 }

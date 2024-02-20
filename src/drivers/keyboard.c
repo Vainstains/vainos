@@ -30,7 +30,7 @@ const char sc_shifted_ascii[] = {'?', '?', '!', '@', '#', '$', '%', '^',
                                 'U', 'I', 'O', 'P', '{', '}', '?', '?', 'A', 'S', 'D', 'F', 'G',
                                 'H', 'J', 'K', 'L', ':', '"', '~', '?', '|', 'Z', 'X', 'C', 'V',
                                 'B', 'N', 'M', '<', '>', '?', '?', '?', ' '};
-
+static char didDoBackspace = 0;
 static void keyboard_callback(registers_t regs) {
     /* The PIC leaves us the scancode in port 0x60 */
     uint8_t scancode = portByteIn(0x60);
@@ -44,8 +44,8 @@ static void keyboard_callback(registers_t regs) {
     }
     if (scancode > SC_MAX) return;
     if (scancode == BACKSPACE) {
-        backspace(key_buffer);
-        vgaWriteBackspace();
+        if (backspace(key_buffer))
+            vgaWriteBackspace();
     } else if (scancode == ENTER) {
         vgaWrite("\n");
         user_input(key_buffer); /* kernel-controlled function */

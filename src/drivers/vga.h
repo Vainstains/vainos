@@ -11,7 +11,7 @@ void vgaWriteChar(char c);
 void vgaWrite(char* string);
 void vgaWriteln(char* string);
 void vgaWriteInt(int number);
-void vgaWriteHex(int number);
+void vgaWriteByte(char number);
 void vgaClear();
 
 #endif
