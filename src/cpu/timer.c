@@ -1,5 +1,4 @@
 #include "timer.h"
-#include "../drivers/vga.h"
 #include "../libc/mem.h"
 #include "isr.h"
 

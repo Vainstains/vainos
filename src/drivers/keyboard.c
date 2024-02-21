@@ -1,7 +1,6 @@
 #include "keyboard.h"
 #include "ports.h"
 #include "../cpu/isr.h"
-#include "vga.h"
 
 #define BACKSPACE 0x0E
 #define ENTER 0x1C
@@ -30,7 +29,7 @@ const char sc_shifted_ascii[] = {'?', '?', '!', '@', '#', '$', '%', '^',
                                 'U', 'I', 'O', 'P', '{', '}', '?', '?', 'A', 'S', 'D', 'F', 'G',
                                 'H', 'J', 'K', 'L', ':', '"', '~', '?', '|', 'Z', 'X', 'C', 'V',
                                 'B', 'N', 'M', '<', '>', '?', '?', '?', ' '};
-static char didDoBackspace = 0;
+
 static void keyboard_callback(registers_t regs) {
     /* The PIC leaves us the scancode in port 0x60 */
     uint8_t scancode = portByteIn(0x60);
@@ -44,31 +43,16 @@ static void keyboard_callback(registers_t regs) {
     }
     if (scancode > SC_MAX) return;
     if (scancode == BACKSPACE) {
-        if (backspace(key_buffer))
-            vgaWriteBackspace();
+        if (backspace(key_buffer)) {
+
+        }
     } else if (scancode == ENTER) {
-        vgaWrite("\n");
-        user_input(key_buffer); /* kernel-controlled function */
         key_buffer[0] = '\0';
     } else {
         char letter = shift_pressed?sc_shifted_ascii[(int)scancode]:sc_ascii[(int)scancode];
-        /* Remember that kprint only accepts char[] */
-        char str[2] = {letter, '\0'};
         append(key_buffer, letter);
-        vgaWrite(str);
     }
-}
-void user_input(char *input) {
-    if (strcmp(input, "END") == 0) {
-        vgaWrite("Stopping the CPU. Bye!\n");
-        asm volatile("hlt");
-    }
-    vgaWrite("You said: ");
-    vgaWrite(input);
-    vgaWrite("\n> ");
 }
 void init_keyboard() {
    register_interrupt_handler(IRQ1, keyboard_callback);
-   vgaWrite("Type something, it will go through the kernel\n"
-        "Type END to halt the CPU\n> ");
 }

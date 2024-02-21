@@ -1,17 +1,11 @@
 #ifndef VGA_H
 #define VGA_H
+#include "../types.h"
 
-int vgaGetOffset(int col, int row);
-int vgaGetOffsetCol(int offset);
-int vgaGetOffsetRow(int offset);
-int vgaGetCursor();
-void vgaSetCursor(int offset);
-void vgaNextLine();
-void vgaWriteChar(char c);
-void vgaWrite(char* string);
-void vgaWriteln(char* string);
-void vgaWriteInt(int number);
-void vgaWriteByte(char number);
-void vgaClear();
+void initVGA();
+void vgaModeSupported(uint16_t mode);
+void vgaSetVideoMode(uint16_t mode);
+void vgaCurrentVideoMode();
+void vgaSetPalette(uint8_t *palette24bpp);
 
 #endif
