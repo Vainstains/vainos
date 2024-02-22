@@ -25,14 +25,14 @@ static void *biggestBlock = NULL;
 static void *lastBlock = NULL;
 
 void *malloc(uint32_t nbytes) {
-    LOG("Requested allocation of "); LOG_INT(nbytes); LOG(" bytes\n");
+    // LOG("Requested allocation of "); LOG_INT(nbytes); LOG(" bytes\n");
 
     optimize();
 
     void *block = find(nbytes);
 
     if (block == NULL) {
-        LOG("Allocation failed\n");
+        // LOG("Allocation failed\n");
         return NULL;
     }
 
@@ -43,18 +43,21 @@ void *malloc(uint32_t nbytes) {
 
 void dealloc(void *ptr) {
     void *block = ptr - MALLOC_BLOCK_HEADER_LENGTH;
-    LOG("Requested deallocation\n");
+    // LOG("Requested deallocation\n");
     uint8_t *flags = (uint8_t *)block;
     uint32_t *blockSize = (uint32_t *)(block+1);
-    LOG("  ");
-    LOG("addr=");
-    LOG_INT(block);
-    LOG(", flags=");
-    LOG_BYTE(*flags);
-    LOG(", bytes=");
-    LOG_INT(*blockSize - MALLOC_BLOCK_HEADER_LENGTH);
-    LOG("\n");
-
+    // LOG("  ");
+    // LOG("addr=");
+    // LOG_INT(block);
+    // LOG(", flags=");
+    // LOG_BYTE(*flags);
+    // LOG(", bytes=");
+    // LOG_INT(*blockSize - MALLOC_BLOCK_HEADER_LENGTH);
+    // LOG("\n");
+    if ((*flags & 2) > 0) {
+        // LOG("Unable to deallocate! (block is marked as reserved)\n");
+        return;
+    }
     *flags &= ~1;
 
     void *nextBlock = block + *blockSize;
@@ -97,7 +100,10 @@ static void optimize() {
 
     while (true) {
         header = (BlockHeader *)block;
-
+        if (header->blockSize <= MALLOC_BLOCK_HEADER_LENGTH)
+        {
+            break;
+        }
         if (header->flags == 0) {
             // Melt consecutive free blocks
             void *nextBlock = block + header->blockSize;
@@ -118,13 +124,8 @@ static void optimize() {
         }
 
         // Move to the next block
+        lastBlock = block;
         block += header->blockSize;
-
-        // Update the last block information
-        if (header->blockSize > MALLOC_BLOCK_HEADER_LENGTH) {
-            lastBlock = block;
-        }
-        break;
     }
 
     // Update global variables for the biggest and last blocks
@@ -148,17 +149,13 @@ static void split(void *block, uint32_t nbytes) {
         nextHeader->flags = 0;  // Set the flag for a free block
         nextHeader->blockSize = remainingBlockSize;
 
-        LOG("Block split, allocated "); LOG_INT(nbytes); LOG(" bytes, saved "); LOG_INT(remainingBlockSize); LOG("\n");
+        // LOG("Block split, allocated "); LOG_INT(nbytes); LOG(" bytes, saved "); LOG_INT(remainingBlockSize); LOG("\n");
     } else {
-        LOG("Not enough excess to split the block\n");
+        // LOG("Not enough excess to split the block\n");
     }
 
     header->flags = 1;
     header->blockSize = nbytes + MALLOC_BLOCK_HEADER_LENGTH;
-}
-
-void setReservedMemory(void *begin, void *end) {
-    // Implementation needed if required
 }
 
 void printMemoryInfo() {
@@ -167,6 +164,8 @@ void printMemoryInfo() {
 
     LOG("Memory Blocks Information:\n");
     uint32_t i = 0;
+    bool allocated;
+    bool reserved;
     while (true) {
         header = (BlockHeader *)currentBlock;
 
@@ -175,19 +174,23 @@ void printMemoryInfo() {
             break;
         }
 
-        LOG("  Block "); LOG_INT(++i); LOG(" at *"); LOG_INT(currentBlock); LOG("  :  ");
-        LOG_INT(header->blockSize); LOG(" (");
-        LOG_INT(header->blockSize - MALLOC_BLOCK_HEADER_LENGTH); LOG(") bytes, ");
+        LOG("  blk"); LOG_INT(++i); LOG(" <"); LOG_INT(currentBlock); LOG("> ");
+        LOG_INT(header->blockSize); LOG("(");
+        LOG_INT(header->blockSize - MALLOC_BLOCK_HEADER_LENGTH); LOG(") bytes      ");
 
-        if (header->flags != 0) {
-            LOG("allocated\n");
+        allocated = ((header->flags) & 1);
+        reserved = ((header->flags) & 2) > 0;
+
+        if (reserved) {
+            LOG("<Reserved>");
+        } else if (allocated) {
+            LOG("<Allocated>");
         } else {
-            LOG("free\n");
+            LOG("<Free>");
         }
-
+        
+        LOG("\n");
         // Move to the next block
         currentBlock += header->blockSize;
     }
-
-    LOG("\n");
 }

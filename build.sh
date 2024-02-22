@@ -29,12 +29,12 @@ nasm boot/kernel_entry.asm -f elf -o "$BIN"/kernel_entry.o
 # Link and create image binary
 printf "\n================================[ Linking ]======================\n\n"
 i386-elf-ld -o "$BIN"/kernel.bin -Ttext 0x1000 -e 0x0 "$BIN"/*.o --oformat binary
-cat "$BIN"/bootsect.bin "$BIN"/kernel.bin > "$BINFINAL"/os-image.bin
+cat "$BIN"/bootsect.bin "$BIN"/kernel.bin > "$BINFINAL"/vainos.img
 
 cd "$CUR_DIR" || exit
 
 # Run image
-qemu-system-i386 -fda bin/os-image.bin \
+qemu-system-i386 -hda bin/vainos.img \
                  -D ./log.txt \
                  -d cpu_reset \
                  -no-reboot \

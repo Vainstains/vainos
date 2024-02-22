@@ -4,11 +4,13 @@
 #include "../types.h"
 
 typedef struct {
-    uint8_t flags;      // Allocation status flag (1 for allocated, 0 for free)
+    uint8_t flags;      // Allocation status flags
+    // bit 0: occupied
+    // bit 1: reserved
     uint32_t blockSize;  // Size of the block, including the header
 }__attribute__((packed)) BlockHeader;
 
-#define MALLOC_BEGIN_ADDR (uint8_t*)0x10000
+#define MALLOC_BEGIN_ADDR (void*)0x00100000
 #define MALLOC_BLOCK_HEADER_LENGTH (sizeof(BlockHeader))
 
 /* copy `nbytes` bytes to `*source`, starting at `*dest` */
