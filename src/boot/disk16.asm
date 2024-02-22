@@ -42,5 +42,5 @@
     disk_loop:
         jmp $
     
-    DISK_ERROR: db "Disk read error", 0
-    SECTORS_ERROR: db "Incorrect number of sectors read", 0
+    DISK_ERROR: db "dsk err", 0
+    SECTORS_ERROR: db "bad #of sect", 0

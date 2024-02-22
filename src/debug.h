@@ -6,9 +6,10 @@
 #define DEBUG
 #ifdef DEBUG
 
-#define LOG(message)  //vgaWrite(message)
-#define LOG_INT(num)  //vgaWriteInt(num)
-#define LOG_BYTE(num) //vgaWriteByte(num)
+#include "drivers/vga.h"
+#define LOG(message)  vgaWrite(message)
+#define LOG_INT(num)  vgaWriteInt(num)
+#define LOG_BYTE(num) vgaWriteByte(num)
 
 #else
 

@@ -1,8 +1,9 @@
+#include "ports.h"
 /**
  * Read a byte from the specified port
  */
-unsigned char portByteIn (unsigned short port) {
-    unsigned char result;
+uint8_t portByteIn (uint16_t port) {
+    uint8_t result;
     /* Inline assembler syntax
      * !! Notice how the source and destination registers are switched from NASM !!
      *
@@ -15,7 +16,7 @@ unsigned char portByteIn (unsigned short port) {
     return result;
 }
 
-void portByteOut (unsigned short port, unsigned char data) {
+void portByteOut (uint16_t port, unsigned char data) {
     /* Notice how here both registers are mapped to C variables and
      * nothing is returned, thus, no equals '=' in the asm syntax 
      * However we see a comma since there are two variables in the input area
@@ -24,12 +25,12 @@ void portByteOut (unsigned short port, unsigned char data) {
     __asm__("out %%al, %%dx" : : "a" (data), "d" (port));
 }
 
-unsigned short portWordIn (unsigned short port) {
-    unsigned short result;
+uint16_t portWordIn (uint16_t port) {
+    uint16_t result;
     __asm__("in %%dx, %%ax" : "=a" (result) : "d" (port));
     return result;
 }
 
-void portWordOut (unsigned short port, unsigned short data) {
+void portWordOut (uint16_t port, uint16_t data) {
     __asm__("out %%ax, %%dx" : : "a" (data), "d" (port));
 }
