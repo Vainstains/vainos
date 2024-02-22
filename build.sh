@@ -35,7 +35,10 @@ dd if=/dev/zero of="$BINFINAL"/vainos.img bs=1M count=128
 
 dd if="$BIN"/bootsect.bin of="$BINFINAL"/vainos.img bs=512 count=1 conv=notrunc
 dd if="$BIN"/kernel.bin of="$BINFINAL"/vainos.img bs=512 seek=1 conv=notrunc
-
+KERNELBYTES=$(wc -c < "$BIN"/kernel.bin)
+printf "\n"
+echo "Sectors used by kernel:" $((KERNELBYTES/512))
+printf "\n"
 #cat "$BIN"/bootsect.bin "$BIN"/kernel.bin >> "$BINFINAL"/vainos.img
 
 cd "$CUR_DIR" || exit
