@@ -93,7 +93,7 @@ void atapioRead28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *bu
     portByteOut(ATAPIO_Port_LBAlo, (uint8_t)LBA);
     portByteOut(ATAPIO_Port_LBAmid, (uint8_t)(LBA >> 8));
     portByteOut(ATAPIO_Port_LBAhi, (uint8_t)(LBA >> 16));
-    portByteOut(ATAPIO_Port_CommStat, 0x20); // ReadSectors command = 0x20
+    portByteOut(ATAPIO_Port_CommStat, 0x20); // Read Sectors command = 0x20
 
     waitBSYClear();
 
@@ -105,4 +105,31 @@ void atapioRead28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *bu
         }
         waitBSYClear();
     }
+}
+
+void atapioWrite28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *buffer) {
+    portByteOut(ATAPIO_Port_DriveSelect, target | ((LBA >> 24) & 0x0F));
+
+    waitStatusRead();
+    waitBSYClear();
+
+    portByteOut(ATAPIO_Port_Error, 0x00);
+    portByteOut(ATAPIO_Port_SectorCount, sectorCount);
+    portByteOut(ATAPIO_Port_LBAlo, (uint8_t)LBA);
+    portByteOut(ATAPIO_Port_LBAmid, (uint8_t)(LBA >> 8));
+    portByteOut(ATAPIO_Port_LBAhi, (uint8_t)(LBA >> 16));
+    portByteOut(ATAPIO_Port_CommStat, 0x30); // Write Sectors command = 0x30
+
+    waitBSYClear();
+
+    size_t idx = 0;
+    uint16_t *wordbuf = (uint16_t*)buffer;
+    for (size_t i = 0; i < sectorCount; i++) {
+        for (size_t j = 0; j < 256; j++) {
+            portWordOut(ATAPIO_Port_Data, wordbuf[idx++]);
+        }
+        waitBSYClear();
+    }
+    portByteOut(ATAPIO_Port_CommStat, 0xE7); // Cache Flush command = 0xE7
+    waitBSYClear();
 }

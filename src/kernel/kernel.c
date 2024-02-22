@@ -26,7 +26,7 @@ void main() {
     vgaNextLine();
 
     uint8_t readBuf[512];
-    atapioRead28(ATAPIO_Read28_Primary, 0, 1, readBuf);
+    atapioRead28(ATAPIO_ReadWrite28_Primary, 0, 1, readBuf);
     for (size_t i = 0; i < 512; i++)
     {
         vgaWriteInt((int)readBuf[i]); vgaNextLine();

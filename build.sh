@@ -3,6 +3,7 @@
 CUR_DIR=$(pwd)
 BIN="$CUR_DIR"/bin/misc
 BINFINAL="$CUR_DIR"/bin
+
 echo "Running build script..."
 
 rm -rf bin
@@ -29,7 +30,13 @@ nasm boot/kernel_entry.asm -f elf -o "$BIN"/kernel_entry.o
 # Link and create image binary
 printf "\n================================[ Linking ]======================\n\n"
 i386-elf-ld -o "$BIN"/kernel.bin -Ttext 0x1000 -e 0x0 "$BIN"/*.o --oformat binary
-cat "$BIN"/bootsect.bin "$BIN"/kernel.bin > "$BINFINAL"/vainos.img
+
+dd if=/dev/zero of="$BINFINAL"/vainos.img bs=1M count=128
+
+dd if="$BIN"/bootsect.bin of="$BINFINAL"/vainos.img bs=512 count=1 conv=notrunc
+dd if="$BIN"/kernel.bin of="$BINFINAL"/vainos.img bs=512 seek=1 conv=notrunc
+
+#cat "$BIN"/bootsect.bin "$BIN"/kernel.bin >> "$BINFINAL"/vainos.img
 
 cd "$CUR_DIR" || exit
 
