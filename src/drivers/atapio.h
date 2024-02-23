@@ -27,6 +27,6 @@ bool atapioIdentify(uint8_t target, uint16_t *buffer);
 void atapioRead28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *buffer);
 
 /* Use ATAPIO_ReadWrite28_<Primary/Secondary> as the target */
-void atapioWrite28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *buffer);
+void atapioWrite28(uint8_t target, uint32_t LBA, uint8_t sectorCount, const uint8_t *buffer);
 
 #endif // ATAPIO_H

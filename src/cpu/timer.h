@@ -5,6 +5,6 @@
 
 void init_timer(uint32_t freq);
 
-int64 getTicksSinceBoot();
+uint64_t getTicksSinceBoot();
 
 #endif

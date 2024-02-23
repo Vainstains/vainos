@@ -107,7 +107,7 @@ void atapioRead28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *bu
     }
 }
 
-void atapioWrite28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *buffer) {
+void atapioWrite28(uint8_t target, uint32_t LBA, uint8_t sectorCount, const uint8_t *buffer) {
     portByteOut(ATAPIO_Port_DriveSelect, target | ((LBA >> 24) & 0x0F));
 
     waitStatusRead();

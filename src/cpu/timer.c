@@ -2,13 +2,13 @@
 #include "../libc/mem.h"
 #include "isr.h"
 
-int64 tick = 0;
+uint64_t tick = 0;
 
 static void timer_callback(registers_t regs) {
     tick++;
 }
 
-int64 getTicksSinceBoot() { return tick; }
+uint64_t getTicksSinceBoot() { return tick; }
 
 void init_timer(uint32_t freq) {
     /* Install the function we just wrote */

@@ -1,9 +1,9 @@
 #include "fat16.h"
+#include "../drivers/disk.h"
 
 #include "../debug.h"
-
-struct BootSector
-{
+typedef struct {
+    // BIOS Parameter Block
     char jmp[3];
     char oem[8];
     uint16_t bytesPerSector;
@@ -18,9 +18,8 @@ struct BootSector
     uint16_t headCount;
     uint32_t hiddenSectors;
     uint32_t largeSectorCount;
-}__attribute__((packed));
 
-struct ExtendedBootRecord16 {
+    // Extended Boot Record
     uint8_t driveNumber;
     uint8_t ntFlags;
     uint8_t signature;
@@ -29,9 +28,4 @@ struct ExtendedBootRecord16 {
     char systemIdentifier[8];
     uint8_t bootCode[448];
     uint16_t bootablePartitionSignature;
-}__attribute__((packed));
-
-
-void initFAT16() {
-    
-}
+}__attribute__((packed)) Fat16BootSector;

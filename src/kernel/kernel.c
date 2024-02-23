@@ -3,7 +3,9 @@
 #include "../drivers/keyboard.h"
 #include "../libc/mem.h"
 #include "../drivers/vga.h"
-#include "../drivers/atapio.h"
+#include "../drivers/disk.h"
+
+
 void main() {
     isr_install();
 
@@ -15,20 +17,12 @@ void main() {
     vgaClear();
     vgaWriteln("Booted successfully");
 
-    uint16_t idBuf[256];
-    atapioIdentify(ATAPIO_Identify_Primary, idBuf);
-    for (size_t i = 0; i < 16; i++)
-    {
-        vgaWriteInt((int)idBuf[i]); vgaNextLine();
-    }
-    printMemoryInfo();
-    vgaNextLine();
-    vgaNextLine();
+    DiskInfo drive;
+    getDiskATAPIO(0, &drive);
 
-    uint8_t readBuf[512];
-    atapioRead28(ATAPIO_ReadWrite28_Primary, 0, 1, readBuf);
-    for (size_t i = 0; i < 512; i++)
-    {
-        vgaWriteInt((int)readBuf[i]); vgaNextLine();
-    }
+    vgaWriteln("Drive info: ");
+    vgaWriteByte(drive.allOK); vgaNextLine();
+    vgaWriteByte(drive.backend); vgaNextLine();
+    vgaWriteByte(drive._atapio_id); vgaNextLine();
+    vgaWriteInt32(drive.sectors); vgaNextLine();
 }

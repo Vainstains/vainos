@@ -120,6 +120,13 @@ void vgaWriteBackspace() {
     vgaSetCursor(cursor-2);
 }
 
+void vgaWriteInt32(uint32_t num) {
+    char buffer[256];
+    int32_to_ascii(num, buffer);
+
+    vgaWrite(buffer);
+}
+
 void vgaWriteInt(int num) {
     char buffer[256];
     int_to_ascii(num, buffer);

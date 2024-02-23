@@ -3,6 +3,7 @@
         "vga.h": "c",
         "keyboard.h": "c",
         "idt.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "functional": "c"
     }
 }

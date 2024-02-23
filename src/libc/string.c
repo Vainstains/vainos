@@ -15,6 +15,17 @@ void reverse(char s[]) {
     }
 }
 
+void int32_to_ascii(uint32_t val, char str[]) {
+    int i = 0;
+    do {
+        str[i++] = val % 10 + '0';
+    } while ((val /= 10) > 0);
+
+    str[i] = '\0';
+
+    reverse(str);
+}
+
 void int_to_ascii(int n, char str[]) {
     int i, sign;
     if ((sign = n) < 0) n = -n;

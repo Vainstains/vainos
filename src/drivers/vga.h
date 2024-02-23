@@ -13,6 +13,7 @@ void vgaWriteChar(char c);
 void vgaWrite(char *string);
 void vgaWriteln(char *string);
 void vgaWriteBackspace();
+void vgaWriteInt32(uint32_t num);
 void vgaWriteInt(int num);
 void vgaWriteByte(uint8_t num);
 void vgaClear();
