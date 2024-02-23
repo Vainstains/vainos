@@ -4,6 +4,9 @@
 #include "../libc/mem.h"
 #include "../drivers/vga.h"
 #include "../drivers/disk.h"
+#include "../filesystem/fat16.h"
+
+#include "../types.h"
 
 
 void main() {
@@ -17,12 +20,19 @@ void main() {
     vgaClear();
     vgaWriteln("Booted successfully");
 
-    DiskInfo drive;
-    getDiskATAPIO(0, &drive);
+    DiskInfo diskInfo;
+    diskGetATAPIO(0, &diskInfo);
 
     vgaWriteln("Drive info: ");
-    vgaWriteByte(drive.allOK); vgaNextLine();
-    vgaWriteByte(drive.backend); vgaNextLine();
-    vgaWriteByte(drive._atapio_id); vgaNextLine();
-    vgaWriteInt32(drive.sectors); vgaNextLine();
+    vgaWriteByte(diskInfo.allOK); vgaNextLine();
+    vgaWriteByte(diskInfo.backend); vgaNextLine();
+    vgaWriteByte(diskInfo._atapio_id); vgaNextLine();
+    vgaWriteInt32(diskInfo.sectors); vgaNextLine();
+
+    Fat16BootSector bootsector;
+
+    fat16ReadBootsector(&diskInfo, &bootsector);
+
+    vgaWriteln("Boot sector info: ");
+    vgaWriteInt(bootsector.bytesPerSector);
 }

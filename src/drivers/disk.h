@@ -12,10 +12,10 @@ typedef struct {
 
     // backend-specific fields, used internally
     byte _atapio_id;
-    byte _atapio_rwid;
+    byte _atapio_rw28id;
 } DiskInfo;
 
-void getDiskATAPIO(byte id, DiskInfo *diskInfo);
+void diskGetATAPIO(byte id, DiskInfo *diskInfo);
 
 void diskRead(DiskInfo *diskInfo, uint32_t sector, uint8_t count, byte *buffer);
 

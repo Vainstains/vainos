@@ -103,6 +103,12 @@ void vgaWrite(char *string) {
     }
 }
 
+void vgaWriteStatic(char *string, uint32_t len) {
+    for (uint32_t i = 0; i < len; i++) {
+        vgaWriteChar(string[i]);
+    }
+}
+
 void vgaWriteln(char *string) {
     int i = 0;
     while (string[i] != 0) {

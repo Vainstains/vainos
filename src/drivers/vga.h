@@ -11,6 +11,7 @@ void vgaSetCursor(int offset);
 void vgaNextLine();
 void vgaWriteChar(char c);
 void vgaWrite(char *string);
+void vgaWriteStatic(char *string, uint32_t len);
 void vgaWriteln(char *string);
 void vgaWriteBackspace();
 void vgaWriteInt32(uint32_t num);

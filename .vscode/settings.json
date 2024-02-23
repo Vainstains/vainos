@@ -4,6 +4,7 @@
         "keyboard.h": "c",
         "idt.h": "c",
         "types.h": "c",
-        "functional": "c"
+        "functional": "c",
+        "fat16.h": "c"
     }
 }

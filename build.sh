@@ -44,8 +44,8 @@ printf "\n"
 cd "$CUR_DIR" || exit
 
 # Run image
-qemu-system-i386 -hda bin/vainos.img \
-                 -D ./log.txt \
+qemu-system-i386 -D ./log.txt \
                  -d cpu_reset \
                  -no-reboot \
-                 -vga std
+                 -vga std \
+                 -drive id=disk,format=raw,file=bin/vainos.img
