@@ -7,7 +7,7 @@
 void diskGetATAPIO(byte id, DiskInfo *diskInfo) {
     diskInfo->backend = DISK_BACKEND_ATAPIO;
     diskInfo->_atapio_id = id;
-    diskInfo->_atapio_rw28id = id ? ATAPIO_ReadWrite28_Secondary : ATAPIO_ReadWrite28_Primary;
+    diskInfo->_atapio_rw28id = id? ATAPIO_ReadWrite28_Secondary : ATAPIO_ReadWrite28_Primary;
 
     uint16_t data[256];
     diskInfo->allOK = atapioIdentify(diskInfo->_atapio_rw28id, data);

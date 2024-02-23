@@ -73,6 +73,13 @@ typedef struct {
     byte final2[4];
 }__attribute__((packed)) Fat16LongFileNameEntry;
 
+typedef struct {
+    DiskInfo *disk;
+    Fat16BootSector *bootsector;
+    uint32_t fatStartSector;
+    
+} Fat16FilesystemInfo;
+
 void fat16ReadBootsector(DiskInfo *disk, Fat16BootSector *bootsector);
 
 #endif // FAT16_H
