@@ -75,11 +75,11 @@ typedef struct {
 
 typedef struct {
     DiskInfo *disk;
-    Fat16BootSector *bootsector;
-    uint32_t fatStartSector;
-    
+    Fat16BootSector bootsector;
 } Fat16FilesystemInfo;
 
-void fat16ReadBootsector(DiskInfo *disk, Fat16BootSector *bootsector);
+void fat16ReadBootsector(Fat16FilesystemInfo *fs);
+
+void fat16Setup(DiskInfo *disk, Fat16FilesystemInfo *fs);
 
 #endif // FAT16_H

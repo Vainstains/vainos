@@ -10,6 +10,13 @@ typedef struct {
     uint32_t blockSize;  // Size of the block, including the header
 }__attribute__((packed)) BlockHeader;
 
+typedef struct {
+    char (*nextByte)(void);
+    uint16_t (*bytesAvailable)(void);
+    uint32_t _pos;
+    uint32_t _handle;
+} ByteStream;
+
 #define MALLOC_BEGIN_ADDR (void*)0x00100000
 #define MALLOC_BLOCK_HEADER_LENGTH (sizeof(BlockHeader))
 

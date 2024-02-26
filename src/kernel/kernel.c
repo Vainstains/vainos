@@ -21,18 +21,17 @@ void main() {
     vgaWriteln("Booted successfully");
 
     DiskInfo diskInfo;
+    
     diskGetATAPIO(0, &diskInfo);
 
     vgaWriteln("Drive info: ");
-    vgaWriteByte(diskInfo.allOK); vgaNextLine();
+    
+    vgaWriteByte(diskInfo.allOK); vgaWrite(" < aaa"); vgaNextLine();
     vgaWriteByte(diskInfo.backend); vgaNextLine();
+    
     vgaWriteByte(diskInfo._atapio_id); vgaNextLine();
-    vgaWriteInt32(diskInfo.sectors); vgaNextLine();
+    vgaWriteInt(diskInfo.sectors); vgaNextLine();
 
-    Fat16BootSector bootsector;
-
-    fat16ReadBootsector(&diskInfo, &bootsector);
-
-    vgaWriteln("Boot sector info: ");
-    vgaWriteInt(bootsector.bytesPerSector);
+    Fat16FilesystemInfo fs;
+    fat16Setup(&diskInfo, &fs);
 }

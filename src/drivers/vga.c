@@ -40,27 +40,7 @@ void vgaSetCursor(int offset) {
 }
 
 void vgaNextLine() {
-    int cursor = vgaGetCursor();
-
-    cursor /= 2 * MAX_COLS; // reset to beginning of line
-    cursor *= 2 * MAX_COLS;
-
-    cursor += 2 * MAX_COLS; // next line
-
-    if (cursor >= MAX_ROWS * MAX_COLS * 2) {
-        int i;
-        for (i = 1; i < MAX_ROWS; i++) 
-            memoryCopy(vgaGetOffset(0, i) + VGA_ADDRESS,
-                        vgaGetOffset(0, i-1) + VGA_ADDRESS,
-                        MAX_COLS * 2);
-
-        /* Blank last line */
-        char *last_line = vgaGetOffset(0, MAX_ROWS-1) + VGA_ADDRESS;
-        for (i = 0; i < MAX_COLS * 2; i++) last_line[i] = 0;
-
-        cursor -= 2 * MAX_COLS;
-    }
-    vgaSetCursor(cursor);
+    vgaWriteChar('\n');
 }
 
 void vgaWriteChar(char c) {
@@ -134,9 +114,10 @@ void vgaWriteInt32(uint32_t num) {
 }
 
 void vgaWriteInt(int num) {
-    char buffer[256];
+    char buffer[64];
+    
     int_to_ascii(num, buffer);
-
+    
     vgaWrite(buffer);
 }
 
