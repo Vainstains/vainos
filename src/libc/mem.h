@@ -21,13 +21,13 @@ typedef struct {
 #define MALLOC_BLOCK_HEADER_LENGTH (sizeof(BlockHeader))
 
 /* copy `nbytes` bytes to `*source`, starting at `*dest` */
-void memoryCopy(char *source, char *dest, int nbytes);
+void memcpy(char *source, char *dest, int nbytes);
 
 /* set the value of `nbytes` bytes to `val`, starting at `*dest` */
-void memorySet(char *dest, char val, int nbytes);
+void memset(char *dest, char val, int nbytes);
 
 void* malloc(uint32_t nbytes);
 
-void dealloc(void *block);
+void free(void *block);
 
 #endif // MEM_H

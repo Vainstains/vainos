@@ -4,6 +4,8 @@
 jmp bootsect_code
 nop
 
+; I forgot where I got this FAT16 header template but this was carried by someone other than me.
+
 db "vainos", 0, 0 ; 8 bytes, name of the operating system
 dw 512            ; 2 bytes, bytes per sector, each one is 512 bytes long
 db 4              ; every cluster on disk is 4 sectors long
@@ -15,7 +17,7 @@ db 1              ; 1 byte, numer of file allocation tables, the prefered
 dw 512            ; 2 bytes, number of root directory entries (file or
                   ;     directories) inside the root directory, the max amount
                   ;     is 512 items, this is the recommended value
-dw 262144          ; small number of sectors in the volume
+dw 65535          ; small number of sectors in the volume
                   ;     NOTE: for my tests purposes, this amount is simply set
                   ;     with an arbitrary value
 db 0xf8           ; media descriptor, the value must be 0xf8 for unknown capacity

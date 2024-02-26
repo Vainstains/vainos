@@ -78,8 +78,6 @@ typedef struct {
     Fat16BootSector bootsector;
 } Fat16FilesystemInfo;
 
-void fat16ReadBootsector(Fat16FilesystemInfo *fs);
-
 void fat16Setup(DiskInfo *disk, Fat16FilesystemInfo *fs);
 
 #endif // FAT16_H

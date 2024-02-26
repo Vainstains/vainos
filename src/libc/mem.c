@@ -1,14 +1,14 @@
 #include "mem.h"
 #include "../debug.h"
 
-void memoryCopy(char *source, char *dest, int nbytes) {
+void memcpy(char *source, char *dest, int nbytes) {
     int i;
     for (i = 0; i < nbytes; i++) {
         *(dest + i) = *(source + i);
     }
 }
 
-void memorySet(char *dest, char val, int nbytes) {
+void memset(char *dest, char val, int nbytes) {
     int i;
     for (i = 0; i < nbytes; i++) {
         *(dest + i) = val;
@@ -41,7 +41,7 @@ void *malloc(uint32_t nbytes) {
     return block;
 }
 
-void dealloc(void *ptr) {
+void free(void *ptr) {
     void *block = ptr - MALLOC_BLOCK_HEADER_LENGTH;
     // LOG("Requested deallocation\n");
     uint8_t *flags = (uint8_t *)block;

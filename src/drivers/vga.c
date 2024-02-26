@@ -60,7 +60,7 @@ void vgaWriteChar(char c) {
     if (cursor >= MAX_ROWS * MAX_COLS * 2) {
         int i;
         for (i = 1; i < MAX_ROWS; i++) 
-            memoryCopy(vgaGetOffset(0, i) + VGA_ADDRESS,
+            memcpy(vgaGetOffset(0, i) + VGA_ADDRESS,
                         vgaGetOffset(0, i-1) + VGA_ADDRESS,
                         MAX_COLS * 2);
 
