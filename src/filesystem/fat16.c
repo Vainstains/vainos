@@ -7,7 +7,7 @@
 
 // -The FAT is for storing info about blocks of data.
 // -The Each fat entry is just an int16, that being the index to the next cluster.
-//   (An index of 0xFFFF marks the end of a data chain)
+//   (An index of 0xFFFF marks the end of a chain, 0x0000 marks an unused cluster)
 // -The root directory is what organizes the FAT into files and directories
 // -The root directory is not special, as in subdirectories are just files with their own "inner root directories"
 //   (this means it is recursive, if handled correctly there can be little to no distinction between the root dir and a regular dir)
