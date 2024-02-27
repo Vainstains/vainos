@@ -21,6 +21,25 @@ static void readCluster(Fat16FilesystemInfo *fs, uint32_t cluster, byte *buffer)
     diskRead(fs->disk, clusterStart, bootsector->sectorsPerCluster, buffer);
 }
 
+static void writeCluster(Fat16FilesystemInfo *fs, uint32_t cluster, byte *buffer) {
+    Fat16BootSector *bootsector = &(fs->bootsector);
+    uint32_t dataStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
+    uint32_t clusterStart = dataStart + (cluster - 2) * bootsector->sectorsPerCluster;
+    diskWrite(fs->disk, clusterStart, bootsector->sectorsPerCluster, buffer);
+}
+
+static void clearCluster(Fat16FilesystemInfo *fs, uint32_t cluster) {
+    Fat16BootSector *bootsector = &(fs->bootsector);
+    uint32_t dataStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
+    uint32_t clusterStart = dataStart + (cluster - 2) * bootsector->sectorsPerCluster;
+
+    uint32_t clusterLength = bootsector->bytesPerSector*bootsector->sectorsPerCluster;
+    byte *zeroes = (byte*)malloc(clusterLength);
+    memset(zeroes, 0, clusterLength);
+    diskWrite(fs->disk, clusterStart, bootsector->sectorsPerCluster, zeroes);
+    free((void*)zeroes);
+}
+
 static uint32_t chainLength(uint16_t *fat, uint32_t cluster) {
     uint32_t length = 0;
     uint16_t value;
@@ -71,15 +90,6 @@ static void writeRootDirectory(Fat16FilesystemInfo *fs, Directory *dir) {
 
     uint8_t entriesPerSector = bootsector->bytesPerSector / 32;
     diskWrite(fs->disk, rootDirStart, dir->entryCount / entriesPerSector, (byte*) dir->entries);
-}
-
-static void readEntryDirectory(Fat16FilesystemInfo *fs, Fat16DirectoryEntry *entry, Directory *dir) {
-    Fat16BootSector *bootsector = &(fs->bootsector);
-    uint32_t rootDirStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
-
-    dir->entryCount = bootsector->rootDirCount;
-    uint8_t entriesPerSector = bootsector->bytesPerSector / 32;
-    diskRead(fs->disk, rootDirStart, dir->entryCount / entriesPerSector, (byte*) dir->entries);
 }
 
 static uint32_t findFreeCluster(uint16_t *fat, uint32_t totalClusters) {
@@ -163,36 +173,62 @@ void fat16CreateFile(Fat16FilesystemInfo *fs, char *name, char *ext) {
     Fat16BootSector *bootsector = &(fs->bootsector);
 
     // 1.) read FAT and RD from disk
-    uint16_t *fat = (uint16_t*)malloc(bootsector->bytesPerSector * bootsector->sectorsPerFAT);
+    uint32_t fatBytes = bootsector->bytesPerSector * bootsector->sectorsPerFAT;
+    uint16_t *fat = (uint16_t*)malloc(fatBytes);
     readFAT(fs, fat);
+
     Directory rootdir;
-    
-    LOG("a: ");
-    LOG_INT(rootdir.entries); LOG("\n");
     rootdir.entries = (Fat16DirectoryEntry*)malloc(32*bootsector->rootDirCount);
-    LOG("b: ");
-    LOG_INT(rootdir.entries); LOG("\n");
     readRootDirectory(fs, &rootdir);
-    LOG("RootDir:\n");
-    LOG_INT(rootdir.entryCount); LOG("\n");
     
     // 2.) find available entry in RD
-
     Fat16DirectoryEntry *entry = rootdir.entries;
-    for (uint32_t i = 0; i < rootdir.entryCount; i++) {
-        if (entryAvailable(entry->fileName[0])) {
-            LOG("Free entry found: idx "); LOG_INT(i); LOG("\n");
+    for (uint16_t i = 0; i < rootdir.entryCount; i++) {
+        if (entryAvailable(entry->fileName[0]))
             break;
-        }
+        entry++;
     }
     
     // 3.) set entry name and general info
     createFilename83(name, ext, entry->fileName);
-    vgaWriteStatic(entry->fileName, 11); vgaNextLine();
+    entry->size = 0;
+    entry->flags = 0;
 
     // 4.) find available cluster in FAT and mark it 0xFFFF
-    uint32_t freeCluster = findFreeCluster(fat, );
+    uint32_t freeCluster = findFreeCluster(fat, fatBytes / 2);
+    fat[freeCluster] = 0xFFFF;
+
     // 5.) write zeroes to the found cluster on disk
-    // 5.) set first cluster in RD entry to found cluster
-    // 6.) write FAT and RD to disk
+    clearCluster(fs, freeCluster);
+
+    // 6.) set first cluster in RD entry to found cluster
+    entry->firstClusterLo = (uint16_t)freeCluster;
+
+    // 7.) write FAT and RD to disk
+    writeFAT(fs, fat);
+    writeRootDirectory(fs, &rootdir);
+
+    free((void*)fat);
+    free((void*)rootdir.entries);
+}
+
+void fat16PrintRootDir(Fat16FilesystemInfo *fs) {
+    Fat16BootSector *bootsector = &(fs->bootsector);
+
+    Directory rootdir;
+    rootdir.entries = (Fat16DirectoryEntry*)malloc(32*bootsector->rootDirCount);
+    readRootDirectory(fs, &rootdir);
+    
+    vgaWriteln("Files in root directory:");
+    Fat16DirectoryEntry *entry = rootdir.entries;
+    for (uint16_t i = 0; i < rootdir.entryCount; i++) {
+        if (!entryAvailable(entry->fileName[0])) {
+            vgaWrite("  ");
+            vgaWriteStatic(entry->fileName, 11);
+            vgaNextLine();
+        }
+        entry++;
+    }
+
+    free((void*)rootdir.entries);
 }
