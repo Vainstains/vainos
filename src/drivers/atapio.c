@@ -93,7 +93,7 @@ void atapioRead28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *bu
     portByteOut(ATAPIO_Port_LBAlo, (uint8_t)LBA);
     portByteOut(ATAPIO_Port_LBAmid, (uint8_t)(LBA >> 8));
     portByteOut(ATAPIO_Port_LBAhi, (uint8_t)(LBA >> 16));
-    portByteOut(ATAPIO_Port_CommStat, 0x20); // Read Sectors command = 0x20
+    portByteOut(ATAPIO_Port_CommStat, 0x20); // Read Sectors command = 0x20 0xE7 
 
     waitBSYClear();
 
@@ -102,6 +102,7 @@ void atapioRead28(uint8_t target, uint32_t LBA, uint8_t sectorCount, uint8_t *bu
     for (size_t i = 0; i < sectorCount; i++) {
         for (size_t j = 0; j < 256; j++) {
             wordbuf[idx++] = portWordIn(ATAPIO_Port_Data);
+            portByteIn(ATAPIO_Port_CommStat);
         }
         waitBSYClear();
     }
@@ -127,6 +128,7 @@ void atapioWrite28(uint8_t target, uint32_t LBA, uint8_t sectorCount, const uint
     for (size_t i = 0; i < sectorCount; i++) {
         for (size_t j = 0; j < 256; j++) {
             portWordOut(ATAPIO_Port_Data, wordbuf[idx++]);
+            portByteIn(ATAPIO_Port_CommStat);
         }
         waitBSYClear();
     }

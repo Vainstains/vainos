@@ -2,6 +2,7 @@
 #include "idt.h"
 #include "../libc/mem.h"
 #include "../drivers/ports.h"
+#include "../drivers/vga.h"
 
 isr_t interrupt_handlers[256];
 /* Can't do this with a loop because we need the address
@@ -75,16 +76,16 @@ void isr_install() {
 
 /* To print the message which defines every exception */
 char *exception_messages[] = {
-    "Division By Zero",
-    "Debug",
-    "Non Maskable Interrupt",
-    "Breakpoint",
-    "Into Detected Overflow",
-    "Out of Bounds",
-    "Invalid Opcode",
-    "No Coprocessor",
+    "Division By Zero", // 0
+    "Debug", // 1
+    "Non Maskable Interrupt", // 2
+    "Breakpoint", // 3
+    "Into Detected Overflow", // 4
+    "Out of Bounds", // 5
+    "Invalid Opcode", // 6
+    "No Coprocessor", // 7
 
-    "Double Fault",
+    "Double Fault", // 8
     "Coprocessor Segment Overrun",
     "Bad TSS",
     "Segment Not Present",

@@ -18,6 +18,7 @@ bool fsInitDisk(DiskInfo *disk, byte backend);
 
 bool fsCreateFile(char *path);
 bool fsOpenFile(char *path);
+bool fsCloseFile(char *path);
 
 
 #endif // FILESYSTEM_H

@@ -15,10 +15,10 @@ typedef struct {
     byte _atapio_rw28id;
 } DiskInfo;
 
-void diskGetATAPIO(byte id, DiskInfo *diskInfo);
+bool diskGetATAPIO(byte id, DiskInfo *diskInfo);
 
-void diskRead(DiskInfo *diskInfo, uint32_t sector, uint8_t count, byte *buffer);
+bool diskRead(DiskInfo *diskInfo, uint32_t sector, uint8_t count, byte *buffer);
 
-void diskWrite(DiskInfo *diskInfo, uint32_t sector, uint8_t count, const byte *buffer);
+bool diskWrite(DiskInfo *diskInfo, uint32_t sector, uint8_t count, const byte *buffer);
 
 #endif // DISK_H

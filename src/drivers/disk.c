@@ -4,7 +4,7 @@
 
 #include "../debug.h"
 
-void diskGetATAPIO(byte id, DiskInfo *diskInfo) {
+bool diskGetATAPIO(byte id, DiskInfo *diskInfo) {
     diskInfo->backend = DISK_BACKEND_ATAPIO;
     diskInfo->_atapio_id = id;
     diskInfo->_atapio_rw28id = id? ATAPIO_ReadWrite28_Secondary : ATAPIO_ReadWrite28_Primary;
@@ -14,26 +14,29 @@ void diskGetATAPIO(byte id, DiskInfo *diskInfo) {
 
     uint32_t *data2 = (uint32_t*) data;
     diskInfo->sectors = data2[30];
+    return diskInfo->allOK;
 }
 
-void diskRead(DiskInfo *diskInfo, uint32_t sector, uint8_t count, byte *buffer) {
+bool diskRead(DiskInfo *diskInfo, uint32_t sector, uint8_t count, byte *buffer) {
     if (!(diskInfo->allOK)) {
         LOG("Cannot read from disk!\n");
-        return;
+        return false;
     }
     switch (diskInfo->backend)
     {
         case DISK_BACKEND_ATAPIO:
             LOG("Reading with ATAPIO backend\n");
+            uint32_t a = 0;
             atapioRead28(diskInfo->_atapio_rw28id, sector, count, buffer);
             break;
     }
+    return true;
 }
 
-void diskWrite(DiskInfo *diskInfo, uint32_t sector, uint8_t count, const byte *buffer) {
+bool diskWrite(DiskInfo *diskInfo, uint32_t sector, uint8_t count, const byte *buffer) {
     if (!(diskInfo->allOK)) {
         LOG("Cannot write to disk!\n");
-        return;
+        return false;
     }
     switch (diskInfo->backend)
     {
@@ -42,4 +45,5 @@ void diskWrite(DiskInfo *diskInfo, uint32_t sector, uint8_t count, const byte *b
             atapioWrite28(diskInfo->_atapio_rw28id, sector, count, buffer);
             break;
     }
+    return true;
 }

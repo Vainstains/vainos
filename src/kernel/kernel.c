@@ -1,13 +1,17 @@
 #include "../cpu/isr.h"
 #include "../cpu/idt.h"
 #include "../drivers/keyboard.h"
-#include "../libc/mem.h"
+#include "../libc/stream.h"
 #include "../drivers/vga.h"
 #include "../drivers/disk.h"
 #include "../filesystem/fat16.h"
 
 #include "../types.h"
 
+void doubleFaultHandler(registers_t r) {
+    vgaWriteln("WARNING: DOUBLE FAULT");
+    while(1);
+}
 
 void main() {
     isr_install();
@@ -16,6 +20,8 @@ void main() {
     init_timer(500);
 
     init_keyboard();
+
+    register_interrupt_handler(8, doubleFaultHandler);
 
     vgaClear();
     vgaWriteln("Booted successfully");
@@ -34,4 +40,6 @@ void main() {
 
     Fat16FilesystemInfo fs;
     fat16Setup(&diskInfo, &fs);
+
+    fat16CreateFile(&fs, "hello", "txt");
 }

@@ -80,4 +80,6 @@ typedef struct {
 
 void fat16Setup(DiskInfo *disk, Fat16FilesystemInfo *fs);
 
+void fat16CreateFile(Fat16FilesystemInfo *fs, char *name, char *ext);
+
 #endif // FAT16_H
