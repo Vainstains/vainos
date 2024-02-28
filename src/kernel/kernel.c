@@ -41,7 +41,7 @@ void main() {
     Fat16FilesystemInfo fs;
     fat16Setup(&diskInfo, &fs);
 
-    fat16CreateFile(&fs, "hello", "txt");
+    fat16CreateFile(&fs, "h.txt");
 
     fat16PrintRootDir(&fs);
 }

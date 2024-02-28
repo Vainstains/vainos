@@ -25,7 +25,7 @@ bool diskRead(DiskInfo *diskInfo, uint32_t sector, uint8_t count, byte *buffer) 
     switch (diskInfo->backend)
     {
         case DISK_BACKEND_ATAPIO:
-            LOG("Reading with ATAPIO backend\n");
+            //LOG("Reading with ATAPIO backend\n");
             uint32_t a = 0;
             atapioRead28(diskInfo->_atapio_rw28id, sector, count, buffer);
             break;
@@ -41,7 +41,7 @@ bool diskWrite(DiskInfo *diskInfo, uint32_t sector, uint8_t count, const byte *b
     switch (diskInfo->backend)
     {
         case DISK_BACKEND_ATAPIO:
-            LOG("Writing with ATAPIO backend\n");
+            //LOG("Writing with ATAPIO backend\n");
             atapioWrite28(diskInfo->_atapio_rw28id, sector, count, buffer);
             break;
     }

@@ -7,6 +7,13 @@
 
 #define FAT16_EntryBytes 32
 
+#define FAT16_FLAG_READONLY 0x01
+#define FAT16_FLAG_HIDDEN 0x02
+#define FAT16_FLAG_SYSTEM 0x04
+#define FAT16_FLAG_VOLUMELABEL 0x08
+#define FAT16_FLAG_DIRECTORY 0x10
+#define FAT16_FLAG_ARCHIVE 0x20
+
 typedef struct {
     // BIOS Parameter Block
     char jmp[3];
@@ -80,6 +87,6 @@ typedef struct {
 
 void fat16Setup(DiskInfo *disk, Fat16FilesystemInfo *fs);
 
-void fat16CreateFile(Fat16FilesystemInfo *fs, char *name, char *ext);
+byte fat16CreateFile(Fat16FilesystemInfo *fs, char *name);
 
 #endif // FAT16_H
