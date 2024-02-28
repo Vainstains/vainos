@@ -2,6 +2,7 @@
 
 #include "../debug.h"
 #include "../libc/mem.h"
+#include "../libc/string.h"
 #include "../drivers/vga.h"
 
 // Note to self: pretty sure this is how Fat16 works at a high level:
@@ -60,9 +61,9 @@ static uint32_t findFreeCluster(uint16_t *fat, uint32_t totalClusters) {
 }
 
 static uint32_t chainLength(uint16_t *fat, uint32_t cluster) {
-    uint32_t length = 0;
+    uint32_t length = 1;
     uint16_t value;
-    while (1) {
+    while (length < 8) {
         value = fat[cluster];
         if (value >= 0xFFF8) {
             break;
@@ -84,14 +85,13 @@ static void appendChain(Fat16FilesystemInfo *fs, uint16_t *fat, uint32_t cluster
         if (newCluster == 0xFFFFFFFF) {
             return;
         }
-
+        vgaWrite("new index: "); vgaWriteInt((uint16_t)newCluster); vgaNextLine();
         fat[endCluster] = (uint16_t)newCluster;
         fat[newCluster] = (i == n - 1) ? 0xFFFF : (uint16_t)(newCluster + 1);
 
         clearCluster(fs, newCluster);
         endCluster = newCluster;
     }
-    writeFAT(fs, fat);
 }
 
 static void popChain(Fat16FilesystemInfo *fs, uint16_t *fat, uint32_t cluster, uint32_t n) {
@@ -111,7 +111,6 @@ static void popChain(Fat16FilesystemInfo *fs, uint16_t *fat, uint32_t cluster, u
 
         endCluster = prev;
     }
-    writeFAT(fs, fat);
 }
 
 static uint32_t fitChainToBytes(Fat16FilesystemInfo *fs, uint16_t *fat, uint32_t cluster, uint32_t nbytes) {
@@ -181,67 +180,6 @@ static void writeChain(Fat16FilesystemInfo *fs, uint16_t *fat, uint32_t cluster,
 
         cluster = fat[cluster];
     }
-}
-
-typedef struct {
-    uint32_t entryCount;
-    uint32_t startCluster;
-    Fat16DirectoryEntry *entries;
-} Fat16Subdirectory;
-
-static void readRootDirectory(Fat16FilesystemInfo *fs, Fat16Subdirectory *dir) {
-    Fat16BootSector *bootsector = &(fs->bootsector);
-    
-    uint32_t rootDirStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
-
-    dir->entryCount = bootsector->rootDirCount;
-    uint8_t entriesPerSector = bootsector->bytesPerSector / 32;
-    uint8_t sectors = dir->entryCount / entriesPerSector;
-    dir->startCluster = 0;
-    diskRead(fs->disk, rootDirStart, sectors, (byte*) dir->entries);
-}
-
-static void writeRootDirectory(Fat16FilesystemInfo *fs, Fat16Subdirectory *dir) {
-    Fat16BootSector *bootsector = &(fs->bootsector);
-    uint32_t rootDirStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
-
-    uint8_t entriesPerSector = bootsector->bytesPerSector / 32;
-    diskWrite(fs->disk, rootDirStart, dir->entryCount / entriesPerSector, (byte*) dir->entries);
-}
-
-static void writeDirectory(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16Subdirectory *dir) {
-    if (dir->startCluster == 0) {
-        writeRootDirectory(fs, dir);
-        return;
-    }
-    byte *data = (byte*)(dir->entries);
-    uint32_t dataLength = dir->entryCount * 32;
-    writeChain(fs, fat, dir->startCluster, data, dataLength);
-}
-
-static void *readDirectoryAlloc(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16Subdirectory *dir, uint32_t cluster) {
-    Fat16BootSector *bootsector = &(fs->bootsector);
-
-    uint32_t dataStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
-    uint32_t clusterStart = dataStart + (cluster - 2) * bootsector->sectorsPerCluster;
-
-    uint32_t entriesPerCluster = bootsector->sectorsPerCluster * bootsector->bytesPerSector / 32;
-
-    uint32_t totalEntries = entriesPerCluster * chainLength(fat, cluster);
-    dir->entries = (Fat16DirectoryEntry *)malloc(totalEntries * sizeof(Fat16DirectoryEntry));
-
-    uint32_t currentCluster = cluster;
-    uint32_t currentEntry = 0;
-
-    while (currentCluster < 0xFFF8) {
-        readCluster(fs, currentCluster, (byte *)(dir->entries) + currentEntry * sizeof(Fat16DirectoryEntry));
-        currentCluster = fat[currentCluster];
-        currentEntry += entriesPerCluster;
-    }
-
-    dir->entryCount = totalEntries;
-    dir->startCluster = cluster;
-    return (void*)(dir->entries);
 }
 
 static void readBootsector(Fat16FilesystemInfo *fs) {
@@ -329,119 +267,6 @@ static void convertFilename83ToRegular(char *name83, char *dst) {
     dst[dstIdx] = 0; // null-term
 }
 
-static void convertFilenameRegularTo83(char *name, char *dst) {
-    uint8_t dstIdx = 0;
-    uint8_t i = 0;
-    for (; i < 8; i++) {
-        if (name[i] == ' ' || name[i] == '\0' || name[i] == '.')
-            break;
-        dst[dstIdx++] = name[i];
-    }
-    for (; dstIdx < 8; dstIdx++) {
-        dst[dstIdx] = ' ';
-    }
-
-    while (name[i] != '\0' && name[i] != '.')
-        i++;
-    
-    i++;
-    for (dstIdx = 8; dstIdx < 11 && name[i] != '\0'; i++, dstIdx++) {
-        dst[dstIdx] = name[i];
-    }
-    for (; dstIdx < 11; dstIdx++) {
-        dst[dstIdx] = ' ';
-    }
-    if (dst[0] == 0xE5)
-        dst[0] = 0x05;
-}
-
-static bool fileExistsInDir(Fat16Subdirectory *dir, char *filename) {
-    char tmpName[12];
-    
-    for (uint32_t i = 0; i < dir->entryCount; i++) {
-        if (!entryIsFile(&(dir->entries[i]))) {
-            continue;
-        }
-        convertFilename83ToRegular(dir->entries[i].fileName, tmpName);
-        if (strcmp(tmpName, filename) == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
-static bool subdirectoryExistsInDir(Fat16Subdirectory *dir, char *subdirName) {
-    char tmpName[12];
-    
-    for (uint32_t i = 0; i < dir->entryCount; i++) {
-        if (!entryIsDirectory(&(dir->entries[i]))) {
-            continue;
-        }
-        convertFilename83ToRegular(dir->entries[i].fileName, tmpName);
-        if (strcmp(tmpName, subdirName) == 0) {
-            return true;
-        }
-    }
-    return false;
-}
-
-static void createNewFile(Fat16FilesystemInfo *fs, char *name, uint16_t *fat, Fat16Subdirectory *parent) {
-    Fat16BootSector *bootsector = &(fs->bootsector);
-    if (fileExistsInDir(parent, name)) {
-        return;
-    }
-
-    Fat16DirectoryEntry *entry = parent->entries;
-    for (uint32_t i = 0; i < parent->entryCount; i++) {
-        if (entryIsAvailable(entry)) {
-            break;
-        }
-        entry++;
-    }
-
-    convertFilenameRegularTo83(name, entry->fileName);
-    entry->size = 0;
-    entry->flags = 0;
-    uint32_t freeCluster = findFreeCluster(fat, bootsector->sectorsPerFAT * bootsector->bytesPerSector / 2);
-    fat[freeCluster] = 0xFFFF;
-    clearCluster(fs, freeCluster);
-
-    entry->firstClusterLo = (uint16_t)freeCluster;
-
-    writeDirectory(fs, fat, parent);
-
-    writeFAT(fs, fat);
-}
-
-static void createNewSubdirectory(Fat16FilesystemInfo *fs, char *subdirName, uint16_t *fat, Fat16Subdirectory *parent) {
-    Fat16BootSector *bootsector = &(fs->bootsector);
-    if (subdirectoryExistsInDir(parent, subdirName)) {
-        return;
-    }
-
-    Fat16DirectoryEntry *entry = parent->entries;
-    for (uint32_t i = 0; i < parent->entryCount; i++) {
-        if (entryIsAvailable(entry)) {
-            break;
-        }
-        entry++;
-    }
-
-    convertFilenameRegularTo83(subdirName, entry->fileName);
-    entry->size = 0;
-    entry->flags = FAT16_FLAG_DIRECTORY;
-    uint32_t freeCluster = findFreeCluster(fat, bootsector->sectorsPerFAT * bootsector->bytesPerSector / 2);
-    fat[freeCluster] = 0xFFFF;
-    clearCluster(fs, freeCluster);
-
-    entry->firstClusterLo = (uint16_t)freeCluster;
-
-    writeDirectory(fs, fat, parent);
-
-    writeFAT(fs, fat);
-}
-
-
 void fat16Setup(DiskInfo *diskInfo, Fat16FilesystemInfo *fs) {
     Fat16BootSector *bootsector = &(fs->bootsector);
     fs->disk = diskInfo;
@@ -468,44 +293,118 @@ void fat16Setup(DiskInfo *diskInfo, Fat16FilesystemInfo *fs) {
         fatSector1[3] = 0xFF;
         diskWrite(diskInfo, firstFAT, 1, fatSector1);
     }
+    vgaWrite("FAT entries: "); vgaWriteInt((bootsector->bytesPerSector * bootsector->sectorsPerFAT)/2); vgaNextLine();
     free((void*)fatSector1);
 }
 
-byte fat16CreateFile(Fat16FilesystemInfo *fs, char *name) {
+void fat16CreateFolder(Fat16FilesystemInfo *fs, char *path) {
+    vgaWrite("Creating folder: ");
+    vgaWriteln(path);
     Fat16BootSector *bootsector = &(fs->bootsector);
     uint32_t fatBytes = bootsector->bytesPerSector * bootsector->sectorsPerFAT;
     uint16_t *fat = (uint16_t*)malloc(fatBytes);
     readFAT(fs, fat);
+    // load root directory
+    Fat16DirectoryEntry *dir = (Fat16DirectoryEntry*)malloc(bootsector->rootDirCount * sizeof(Fat16DirectoryEntry));
+    uint32_t rootDirStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
 
-    Fat16Subdirectory dir;
-    dir.entries = (Fat16DirectoryEntry*)malloc(32*bootsector->rootDirCount);
-    readRootDirectory(fs, &dir);
-    
-    createNewFile(fs, name, fat, &dir);
+    uint32_t entryCount = bootsector->rootDirCount;
+    uint8_t entriesPerSector = bootsector->bytesPerSector / sizeof(Fat16DirectoryEntry);
+    uint8_t sectors = entryCount / entriesPerSector;
+    uint32_t dirCluster = 0;
+    diskRead(fs->disk, rootDirStart, sectors, (byte*)dir);
+    vgaWriteStatic((byte*)dir, 64); vgaNextLine();
+    char name[9];
+    int i, dirIdx;
+    while (strcontains(path, '/')) {
+        i = 0;
+        for (; i < 8; i++) {
+            if (path[i] == '/') break;
+            name[i] = path[i];
+        }
+        for (; i < 8; i++) {
+            name[i] = ' ';
+        }
+        name[8] = '\0';
+        path = strchr(path, '/') + 1;
+        vgaWrite("Looking for folder: ");
+        vgaWrite(name);
+        if (name[0] == 0xE5)
+            name[0] == 0x05;
+        i = 0;
+        dirIdx = -1;
+        for (; i < entryCount; i++) {
+            if (entryIsDirectory(&(dir[i])))
+            {
+                //vgaWriteStatic(dir[i].fileName, 8); vgaNextLine();
+                if (memequal(dir[i].fileName, name, 8)) {
+                    dirIdx = i;
+                    break;
+                }
+            }
+        }
+        if (dirIdx < 0)
+        {
+            vgaWriteln(" Not found!");
+            free((void*)fat);
+            free((void*)dir);
+            return;
+        }
+        vgaWriteln("Found!");
+        uint16_t newDirCluster = dir[i].firstCluster;
+        uint32_t bytes = chainLength(fat, newDirCluster) * (uint32_t)bootsector->bytesPerSector * (uint32_t)bootsector->sectorsPerCluster;
+        free((void*)dir);
+        dir = (Fat16DirectoryEntry*)malloc(bytes);
+        
+        readChain(fs, fat, newDirCluster, (byte*)dir, bytes);
+        vgaWriteStatic((byte*)dir, 64); vgaNextLine();
+        dirCluster = newDirCluster;
+        entryCount = bytes / sizeof(Fat16DirectoryEntry);
+    }
+    i = 0;
+    dirIdx = -1;
+    for (; i < entryCount; i++) {
+        if (entryIsAvailable(&(dir[i])))
+        {
+            dirIdx = i;
+            break;
+        }
+    }
+    if (dirIdx < 0)
+    {
+        vgaWriteln("No free entries!");
+        free((void*)fat);
+        free((void*)dir);
+        return;
+    }
+    i = 0;
+    for (; i < 8; i++) {
+        if (path[i] == '/' || path[i] == '\0') break;
+        name[i] = path[i];
+    }
+    for (; i < 8; i++) {
+        name[i] = ' ';
+    }
+    name[8] = '\0';
+    path = strchr(path, '/') + 1;
+    vgaWrite("Creating directory: ");
+    vgaWriteln(name);
+    if (name[0] == 0xE5)
+        name[0] == 0x05;
+    uint16_t cluster = (uint16_t)findFreeCluster(fat, fatBytes / 2);
+    fat[cluster] = 0xFFFF;
+    memcpy(name, dir[dirIdx].fileName, 8);
+    dir[dirIdx].firstCluster = cluster;
+    dir[dirIdx].flags = FAT16_FLAG_DIRECTORY;
+    dir[dirIdx].size = (uint32_t)bootsector->bytesPerSector * (uint32_t)bootsector->sectorsPerCluster;
+    if (dirCluster == 0)
+        diskWrite(fs->disk, rootDirStart, sectors, (byte*)dir);
+    else
+        writeChain(fs, fat, dirCluster, (byte*)dir, dir[dirIdx].size);
+    vgaWriteInt(dirCluster); vgaNextLine();
+    //vgaWriteInt(dir[dirIdx].size); vgaNextLine();
+    writeFAT(fs, fat);
 
     free((void*)fat);
-    free((void*)dir.entries);
-    return 1;
-}
-
-void fat16PrintRootDir(Fat16FilesystemInfo *fs) {
-    Fat16BootSector *bootsector = &(fs->bootsector);
-
-    Fat16Subdirectory rootdir;
-    rootdir.entries = (Fat16DirectoryEntry*)malloc(32*bootsector->rootDirCount);
-    readRootDirectory(fs, &rootdir);
-    char tmpName[12];
-    vgaWriteln("Files in root directory:");
-    Fat16DirectoryEntry *entry = rootdir.entries;
-    for (uint16_t i = 0; i < rootdir.entryCount; i++) {
-        if (!entryIsAvailable(entry)) {
-            convertFilename83ToRegular(entry->fileName, tmpName);
-            vgaWrite("  ");
-            vgaWrite(tmpName);
-            vgaNextLine();
-        }
-        entry++;
-    }
-
-    free((void*)rootdir.entries);
+    free((void*)dir);
 }

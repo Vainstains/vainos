@@ -59,6 +59,28 @@ int strcmp(char s1[], char s2[]) {
     return s1[i] - s2[i];
 }
 
+char* strchr(char *str, char c) {
+    int i = 0;
+    while (str[i] != '\0') {
+        ++i;
+        if (str[i] == c) {
+            return str + i;
+        }
+    }
+    return str;
+}
+
+bool strcontains(char *str, char c) {
+    int i = 0;
+    while (str[i] != '\0') {
+        ++i;
+        if (str[i] == c) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void append(char s[], char n) {
     int len = strlen(s);
     s[len] = n;

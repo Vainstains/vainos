@@ -15,6 +15,14 @@ void memset(char *dest, char val, int nbytes) {
     }
 }
 
+bool memequal(char *a, char *b, int nbytes) {
+    for (int i = 0; i < nbytes; i++) {
+        if (a[i] != b[i])
+            return false;
+    }
+    return true;
+}
+
 static void *find(uint32_t nbytes);
 
 static void optimize();
@@ -27,18 +35,86 @@ static void *lastBlock = NULL;
 void *malloc(uint32_t nbytes) {
     // LOG("Requested allocation of "); LOG_INT(nbytes); LOG(" bytes\n");
 
-    optimize();
+    void *block = MALLOC_BEGIN_ADDR;
+    uint8_t *flags;
+    uint32_t *blockSize;
 
-    void *block = find(nbytes);
+    void *nextBlock;
+    uint8_t *nextFlags;
+    uint32_t *nextBlockSize;
 
-    if (block == NULL) {
-        // LOG("Allocation failed\n");
-        return NULL;
+    while (true) {
+        flags = (uint8_t *)block;
+        blockSize = (uint32_t *)(block+1);
+        
+        // LOG("  Checking block at "); // LOG is part of my header `debug.h`
+        // LOG_INT(block);
+        // LOG(": ");
+        // LOG("flags=");
+        // LOG_BYTE(*flags);
+        // LOG(", bytes=");
+        // LOG_INT(*blockSize - MALLOC_BLOCK_HEADER_LENGTH);
+        // LOG("...");
+        if ((*flags & 1) != 0)
+        {
+            // LOG(" Not a free block\n");
+            block += *blockSize;
+            continue;
+        }
+        // LOG(" Is a free block\n  ");
+
+        // Melt as many following free blocks as possible into this one
+        nextBlock = block + *blockSize;
+        nextFlags = (uint8_t *)nextBlock;
+        nextBlockSize = (uint32_t *)(nextBlock+1);
+        if (*nextBlockSize <= MALLOC_BLOCK_HEADER_LENGTH) { // last block
+            // LOG("Is last block, extending...\n");
+            *(uint8_t *)block = 1;
+            *(uint32_t *)(block+1) = nbytes + MALLOC_BLOCK_HEADER_LENGTH;
+            return block + MALLOC_BLOCK_HEADER_LENGTH;
+        }
+        uint32_t melted = 0;
+        while ((*nextFlags & 1) == 0 && *nextBlockSize > MALLOC_BLOCK_HEADER_LENGTH)
+        {
+            *blockSize += *nextBlockSize;
+
+            nextBlock += *nextBlockSize;
+            nextFlags = (uint8_t *)nextBlock;
+            nextBlockSize = (uint32_t *)(nextBlock+1);
+            melted++;
+        }
+        // LOG_INT(melted); LOG(" melted, ");
+        if (*blockSize - MALLOC_BLOCK_HEADER_LENGTH < nbytes && *blockSize > MALLOC_BLOCK_HEADER_LENGTH)
+        {
+            // LOG("Too small\n");
+            block += *blockSize;
+            continue;
+        }
+
+        // LOG("Big enough to allocate, splitting block\n");
+
+        if (*blockSize > nbytes+MALLOC_BLOCK_HEADER_LENGTH) {
+            // Calculate the size of the remaining free block
+            uint32_t remainingBlockSize = *blockSize - (nbytes + MALLOC_BLOCK_HEADER_LENGTH);
+
+            // Update the size of the allocated block
+            *blockSize = nbytes + MALLOC_BLOCK_HEADER_LENGTH;
+
+            // Update the next block's header to reflect the remaining free block
+            uint8_t *nextBlock = block + nbytes + MALLOC_BLOCK_HEADER_LENGTH;
+            *(uint8_t *)nextBlock = 0; // Set the flag for a free block
+            *(uint32_t *)(nextBlock + 1) = remainingBlockSize;
+
+            // LOG("Block split, allocated "); LOG_INT(nbytes); LOG(" bytes, saved "); LOG_INT(remainingBlockSize); LOG("\n");
+        } else {
+            // LOG("Not enough excess to split the block\n");
+        }
+
+        *(uint8_t *)block = 1;
+        *(uint32_t *)(block+1) = nbytes + MALLOC_BLOCK_HEADER_LENGTH;
+        return block + MALLOC_BLOCK_HEADER_LENGTH;
     }
-
-    split(block, nbytes);
-
-    return block;
+    // LOG("\n");
 }
 
 void free(void *ptr) {
@@ -54,10 +130,7 @@ void free(void *ptr) {
     // LOG(", bytes=");
     // LOG_INT(*blockSize - MALLOC_BLOCK_HEADER_LENGTH);
     // LOG("\n");
-    if ((*flags & 2) > 0) {
-        // LOG("Unable to deallocate! (block is marked as reserved)\n");
-        return;
-    }
+
     *flags &= ~1;
 
     void *nextBlock = block + *blockSize;
@@ -66,96 +139,6 @@ void free(void *ptr) {
     if (*nextBlockSize <= MALLOC_BLOCK_HEADER_LENGTH) {
         *blockSize = 0;
     }
-    optimize();
-}
-
-static void *find(uint32_t nbytes) {
-    void *block = MALLOC_BEGIN_ADDR;
-    BlockHeader *header = (BlockHeader *)block;
-
-    while (true) {
-        header = (BlockHeader *)block;
-        if (header->blockSize <= MALLOC_BLOCK_HEADER_LENGTH)
-            return block;
-        if (header->flags != 0) {
-            block += header->blockSize;
-            continue;
-        }
-        // Check if the block is big enough to accommodate nbytes
-        if (header->blockSize - MALLOC_BLOCK_HEADER_LENGTH >= nbytes && header->blockSize > MALLOC_BLOCK_HEADER_LENGTH) {
-            return block;
-        }
-        // Move to the next block
-        block += header->blockSize;
-    }
-
-    return NULL;
-}
-
-static void optimize() {
-    void *block = MALLOC_BEGIN_ADDR;
-    BlockHeader *header;
-    void *largestBlock = NULL;
-    uint32_t largestBlockSize = 0;
-
-    while (true) {
-        header = (BlockHeader *)block;
-        if (header->blockSize <= MALLOC_BLOCK_HEADER_LENGTH)
-        {
-            break;
-        }
-        if (header->flags == 0) {
-            // Melt consecutive free blocks
-            void *nextBlock = block + header->blockSize;
-            BlockHeader *nextHeader = (BlockHeader *)nextBlock;
-
-            while (nextHeader->flags == 0 && nextHeader->blockSize > MALLOC_BLOCK_HEADER_LENGTH) {
-                header->blockSize += nextHeader->blockSize;
-
-                nextBlock += nextHeader->blockSize;
-                nextHeader = (BlockHeader *)nextBlock;
-            }
-
-            // Update largest block information
-            if (header->blockSize > largestBlockSize) {
-                largestBlockSize = header->blockSize;
-                largestBlock = block;
-            }
-        }
-
-        // Move to the next block
-        lastBlock = block;
-        block += header->blockSize;
-    }
-
-    // Update global variables for the biggest and last blocks
-    biggestBlock = largestBlock;
-}
-
-static void split(void *block, uint32_t nbytes) {
-    BlockHeader *header = (BlockHeader *)block;
-
-    if (header->blockSize > nbytes + MALLOC_BLOCK_HEADER_LENGTH) {
-        // Calculate the size of the remaining free block
-        uint32_t remainingBlockSize = header->blockSize - (nbytes + MALLOC_BLOCK_HEADER_LENGTH);
-
-        // Update the size of the allocated block
-        header->blockSize = nbytes + MALLOC_BLOCK_HEADER_LENGTH;
-
-        // Update the next block's header to reflect the remaining free block
-        void *nextBlock = block + nbytes + MALLOC_BLOCK_HEADER_LENGTH;
-        BlockHeader *nextHeader = (BlockHeader *)nextBlock;
-
-        nextHeader->flags = 0;  // Set the flag for a free block
-        nextHeader->blockSize = remainingBlockSize;
-
-        // LOG("Block split, allocated "); LOG_INT(nbytes); LOG(" bytes, saved "); LOG_INT(remainingBlockSize); LOG("\n");
-    } else {
-        // LOG("Not enough excess to split the block\n");
-    }
-
-    header->flags = 1;
-    header->blockSize = nbytes + MALLOC_BLOCK_HEADER_LENGTH;
 }
 
 void printMemoryInfo() {
@@ -174,7 +157,7 @@ void printMemoryInfo() {
             break;
         }
 
-        LOG("  blk"); LOG_INT(++i); LOG(" <"); LOG_INT(currentBlock); LOG("> ");
+        LOG("  BLK "); LOG_INT(++i); LOG(" <"); LOG_INT(currentBlock); LOG("> ");
         LOG_INT(header->blockSize); LOG("(");
         LOG_INT(header->blockSize - MALLOC_BLOCK_HEADER_LENGTH); LOG(") bytes      ");
 

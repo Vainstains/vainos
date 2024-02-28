@@ -16,6 +16,12 @@ void byte_to_ascii(uint8_t n, char str[]);
 /* Compare two null-terminated strings */
 int strcmp(char s1[], char s2[]);
 
+/* Get pointer to first occurrence of char */
+char* strchr(char *str, char c);
+
+/* Does string contain char */
+bool strcontains(char *str, char c);
+
 /* "Append" a character to a null-terminated string */
 void append(char s[], char n);
 

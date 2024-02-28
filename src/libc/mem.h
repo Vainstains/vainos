@@ -19,6 +19,8 @@ void memcpy(char *source, char *dest, int nbytes);
 /* set the value of `nbytes` bytes to `val`, starting at `*dest` */
 void memset(char *dest, char val, int nbytes);
 
+bool memequal(char *a, char *b, int nbytes);
+
 void* malloc(uint32_t nbytes);
 
 void free(void *block);

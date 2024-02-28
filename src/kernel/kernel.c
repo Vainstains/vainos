@@ -2,6 +2,7 @@
 #include "../cpu/idt.h"
 #include "../drivers/keyboard.h"
 #include "../libc/stream.h"
+#include "../libc/mem.h"
 #include "../drivers/vga.h"
 #include "../drivers/disk.h"
 #include "../filesystem/fat16.h"
@@ -41,7 +42,21 @@ void main() {
     Fat16FilesystemInfo fs;
     fat16Setup(&diskInfo, &fs);
 
-    fat16CreateFile(&fs, "h.txt");
+    vgaNextLine();
+    fat16CreateFolder(&fs, "hello");
+    vgaNextLine();
 
-    fat16PrintRootDir(&fs);
+    //printMemoryInfo();
+    
+    //while(1);
+
+
+    fat16CreateFolder(&fs, "hello/world");
+    vgaNextLine();
+    fat16CreateFolder(&fs, "world/hello");
+    vgaNextLine();
+    fat16CreateFolder(&fs, "abc/def");
+    //vgaNextLine();
+
+    //vgaWriteln("Checkpoint :)");
 }

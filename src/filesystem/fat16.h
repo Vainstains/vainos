@@ -43,42 +43,15 @@ typedef struct {
 }__attribute__((packed)) Fat16BootSector;
 
 typedef struct {
-    byte hour;
-    byte minute;
-    byte second;
-} Fat16Time;
-
-typedef struct {
-    byte year;
-    byte month;
-    byte day;
-} Fat16Date;
-
-typedef struct {
-    char fileName[11];
+    char fileName[8];
+    char fileExtension[3];
     byte flags;
-    byte _ntReserved;
-    byte creationTimeSecondsFrac;
+    byte _ntReserved[10];
     uint16_t creationTime;
     uint16_t creationDate;
-    uint16_t accessedDate;
-    uint16_t firstClusterHi;
-    uint16_t modificationTime;
-    uint16_t modificationDate;
-    uint16_t firstClusterLo;
+    uint16_t firstCluster;
     uint32_t size;
 }__attribute__((packed)) Fat16DirectoryEntry;
-
-typedef struct {
-    byte order;
-    byte first5[10];
-    byte attribute;
-    byte longEntryType;
-    byte shortNameChecksum;
-    byte next6[12];
-    word _zero;
-    byte final2[4];
-}__attribute__((packed)) Fat16LongFileNameEntry;
 
 typedef struct {
     DiskInfo *disk;
@@ -86,7 +59,5 @@ typedef struct {
 } Fat16FilesystemInfo;
 
 void fat16Setup(DiskInfo *disk, Fat16FilesystemInfo *fs);
-
-byte fat16CreateFile(Fat16FilesystemInfo *fs, char *name);
 
 #endif // FAT16_H
