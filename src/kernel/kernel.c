@@ -43,7 +43,7 @@ void main() {
     fat16Setup(&diskInfo, &fs);
 
     vgaNextLine();
-    fat16CreateFolder(&fs, "hello");
+    fat16CreateFolder(&fs, "/hello");
     vgaNextLine();
 
     //printMemoryInfo();
@@ -51,11 +51,13 @@ void main() {
     //while(1);
 
 
-    fat16CreateFolder(&fs, "hello/world");
+    fat16CreateFolder(&fs, "/hello/world");
     vgaNextLine();
-    fat16CreateFolder(&fs, "world/hello");
+    fat16CreateFolder(&fs, "/world/hello/world/hello");
     vgaNextLine();
-    fat16CreateFolder(&fs, "abc/def");
+    fat16CreateFolder(&fs, "/abc/def");
+
+    printRootDirectory(&fs);
     //vgaNextLine();
 
     //vgaWriteln("Checkpoint :)");
