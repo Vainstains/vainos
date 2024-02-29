@@ -59,5 +59,10 @@ typedef struct {
 } Fat16FilesystemInfo;
 
 void fat16Setup(DiskInfo *disk, Fat16FilesystemInfo *fs);
+bool fat16CreateDirectory(Fat16FilesystemInfo *fs, char *path);
+bool fat16CreateFile(Fat16FilesystemInfo *fs, char *path);
+bool fat16WriteFile(Fat16FilesystemInfo *fs, char *path, byte *buffer, uint32_t nbytes);
+bool fat16ReadFile(Fat16FilesystemInfo *fs, char *path, byte *buffer, uint32_t nbytes);
+void printRootDirectory(Fat16FilesystemInfo *fs);
 
 #endif // FAT16_H

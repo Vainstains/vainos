@@ -5,6 +5,7 @@
 #include "../libc/mem.h"
 #include "../drivers/vga.h"
 #include "../drivers/disk.h"
+#include "../filesystem/filesystem.h"
 #include "../filesystem/fat16.h"
 
 #include "../types.h"
@@ -28,30 +29,22 @@ void main() {
     vgaWriteln("Booted successfully");
 
     DiskInfo diskInfo;
-    
     diskGetATAPIO(0, &diskInfo);
-
-    vgaWriteln("Drive info: ");
-    
-    vgaWriteByte(diskInfo.allOK); vgaWrite(" < aaa"); vgaNextLine();
-    vgaWriteByte(diskInfo.backend); vgaNextLine();
-    
-    vgaWriteByte(diskInfo._atapio_id); vgaNextLine();
-    vgaWriteInt(diskInfo.sectors); vgaNextLine();
-
-    Fat16FilesystemInfo fs;
-    fat16Setup(&diskInfo, &fs);
+    Fat16FilesystemInfo fat16info;
+    fat16Setup(&diskInfo, &fat16info);
+    FSInfo fs;
+    fsInit(&fs, (void*)(&fat16info), FILESYSTEM_BACKEND_FAT16);
 
     vgaNextLine();
-    fat16CreateDirectory(&fs, "/hello");
+    fsCreateDirectory(&fs, "/hello");
+    fsCreateDirectory(&fs, "/hello");
+    fsCreateFile(&fs, "/hello/world.txt");
+    fsCreateFile(&fs, "/hello/world.txt");
+    fsWriteFile(&fs, "/hello/world.txt", "abc123", 6);
     vgaNextLine();
-    fat16CreateDirectory(&fs, "/hello");
-    vgaNextLine();
-    fat16CreateDirectory(&fs, "/hello/dir");
-    vgaNextLine();
-    fat16CreateDirectory(&fs, "/world/hello/world/hello");
-    vgaNextLine();
-    fat16CreateFile(&fs, "world.txt");
-    vgaNextLine();
-    printRootDirectory(&fs);
+
+    char file[20];
+    fsReadFile(&fs, "/hello/world.txt", file, 6);
+    vgaWriteln(file);
+    //printRootDirectory(&fs);
 }

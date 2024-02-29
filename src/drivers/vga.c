@@ -85,6 +85,11 @@ void vgaWrite(char *string) {
 
 void vgaWriteStatic(char *string, uint32_t len) {
     for (uint32_t i = 0; i < len; i++) {
+        if (string[i] == '\0')
+        {
+            vgaWriteChar('*');
+            continue;
+        }
         vgaWriteChar(string[i]);
     }
 }

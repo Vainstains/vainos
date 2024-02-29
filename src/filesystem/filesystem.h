@@ -4,21 +4,31 @@
 #include "../types.h"
 #include "../drivers/disk.h"
 #include "../libc/mem.h"
-#define FILESYSTEM_BACKEND_FAT16 0
+#include "fat16.h"
+
+#define FILESYSTEM_BACKEND_FAT16 1
 
 typedef struct {
     bool allOK;
     byte backend;
 
-    void *backendSpecificData;
+    void *info;
 } FSInfo;
 
 
-bool fsInitDisk(DiskInfo *disk, byte backend);
+bool fsInit(FSInfo *fs, void *info, byte backend);
 
-bool fsCreateFile(char *path);
-bool fsOpenFile(char *path);
-bool fsCloseFile(char *path);
+bool fsCreateFile(FSInfo *fs, char *path);
+bool fsCreateDirectory(FSInfo *fs, char *path);
+bool fsWriteFile(FSInfo *fs, char *path, byte *buffer, uint32_t nbytes);
+bool fsReadFile(FSInfo *fs, char *path, byte *buffer, uint32_t nbytes);
+
+bool fsIsFile(FSInfo *fs, char *path);
+bool fsPathExists(FSInfo *fs, char *path);
+uint32_t fsFileSize(FSInfo *fs, char *path);
+char *fsEnumerateDirectoryAlloc(FSInfo *fs, char *path);
+
+void fsJoinPaths(char *pathA, char *pathB, char *pathOut);
 
 
 #endif // FILESYSTEM_H

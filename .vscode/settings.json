@@ -6,6 +6,7 @@
         "types.h": "c",
         "functional": "c",
         "fat16.h": "c",
-        "disk.h": "c"
+        "disk.h": "c",
+        "typeinfo": "c"
     }
 }
