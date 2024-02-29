@@ -260,6 +260,8 @@ static void convertFilename83ToRegular(char *name83, char *dst) {
             break;
         dst[dstIdx++] = name83[i];
     }
+    if (i == 8)
+        dstIdx--;
     if (dst[0] == 0x05)
         dst[0] = 0xE5;
     dst[dstIdx] = 0; // null-term
@@ -295,8 +297,51 @@ void fat16Setup(DiskInfo *diskInfo, Fat16FilesystemInfo *fs) {
     free((void*)fatSector1);
 }
 
-void fat16CreateFolder(Fat16FilesystemInfo *fs, char *path) {
-    vgaWrite("Creating folder: ");
+static bool traversePath(Fat16FilesystemInfo *fs, char **path, Fat16DirectoryEntry **dir, uint32_t *dirCluster, uint32_t *entryCount, uint16_t *fat) {
+    char name[9];
+    int i, dirIdx;
+
+    while (strcontains(*path, '/')) {
+        i = 0;
+        for (; i < 8; i++) {
+            if ((*path)[i] == '/') break;
+            name[i] = (*path)[i];
+        }
+        for (; i < 8; i++) {
+            name[i] = ' ';
+        }
+        name[8] = '\0';
+        *path = strchr(*path, '/') + 1;
+        if (name[0] == 0xE5)
+            name[0] = 0x05;
+        i = 0;
+        dirIdx = -1;
+        for (; i < *entryCount; i++) {
+            if (entryIsDirectory(&((*dir)[i])))
+            {
+                if (memequal((*dir)[i].fileName, name, 8)) {
+                    dirIdx = i;
+                    break;
+                }
+            }
+        }
+        if (dirIdx < 0)
+        {
+            return false;
+        }
+        uint16_t newDirCluster = (*dir)[i].firstCluster;
+        uint32_t bytes = chainLength(fat, newDirCluster) * (uint32_t)fs->bootsector.bytesPerSector * (uint32_t)fs->bootsector.sectorsPerCluster;
+        free((void*)*dir);
+        *dir = (Fat16DirectoryEntry*)malloc(bytes);
+        readChain(fs, fat, newDirCluster, (byte*)*dir, bytes);
+        *dirCluster = newDirCluster;
+        *entryCount = bytes / sizeof(Fat16DirectoryEntry);
+    }
+    return true;
+}
+
+void fat16CreateDirectory(Fat16FilesystemInfo *fs, char *path) {
+    vgaWrite("Creating directory: ");
     vgaWriteln(path);
     if (path[0] == '/') path++;
     Fat16BootSector *bootsector = &(fs->bootsector);
@@ -312,48 +357,42 @@ void fat16CreateFolder(Fat16FilesystemInfo *fs, char *path) {
     uint8_t sectors = entryCount / entriesPerSector;
     uint32_t dirCluster = 0;
     diskRead(fs->disk, rootDirStart, sectors, (byte*)dir);
+
+    if (!traversePath(fs, &path, &dir, &dirCluster, &entryCount, fat))
+    {
+        vgaWriteln("Path does not exist");
+        free((void*)fat);
+        free((void*)dir);
+        return;
+    }
+
     char name[9];
-    int i, dirIdx;
-    while (strcontains(path, '/')) {
-        i = 0;
+
+    int i = 0;
         for (; i < 8; i++) {
-            if (path[i] == '/') break;
-            name[i] = path[i];
-        }
-        for (; i < 8; i++) {
-            name[i] = ' ';
-        }
-        name[8] = '\0';
-        path = strchr(path, '/') + 1;
-        if (name[0] == 0xE5)
-            name[0] == 0x05;
-        i = 0;
-        dirIdx = -1;
-        for (; i < entryCount; i++) {
-            if (entryIsDirectory(&(dir[i])))
-            {
-                if (memequal(dir[i].fileName, name, 8)) {
-                    dirIdx = i;
-                    break;
-                }
+        if (path[i] == '\0') break;
+        name[i] = path[i];
+    }
+    for (; i < 8; i++) {
+        name[i] = ' ';
+    }
+    name[8] = '\0';
+    if (name[0] == 0xE5)
+        name[0] == 0x05;
+    i = 0;
+    for (; i < entryCount; i++) {
+        if (entryIsDirectory(&(dir[i])))
+        {
+            if (memequal(dir[i].fileName, name, 8)) {
+                vgaWriteln("Directory already exists");
+                free((void*)fat);
+                free((void*)dir);
+                return;
             }
         }
-        if (dirIdx < 0)
-        {
-            free((void*)fat);
-            free((void*)dir);
-            return;
-        }
-        uint16_t newDirCluster = dir[i].firstCluster;
-        uint32_t bytes = chainLength(fat, newDirCluster) * (uint32_t)bootsector->bytesPerSector * (uint32_t)bootsector->sectorsPerCluster;
-        free((void*)dir);
-        dir = (Fat16DirectoryEntry*)malloc(bytes);
-        readChain(fs, fat, newDirCluster, (byte*)dir, bytes);
-        dirCluster = newDirCluster;
-        entryCount = bytes / sizeof(Fat16DirectoryEntry);
     }
+    int dirIdx = -1;
     i = 0;
-    dirIdx = -1;
     for (; i < entryCount; i++) {
         if (entryIsAvailable(&(dir[i])))
         {
@@ -363,29 +402,129 @@ void fat16CreateFolder(Fat16FilesystemInfo *fs, char *path) {
     }
     if (dirIdx < 0)
     {
-        vgaWriteln("No free entries!");
+        vgaWriteln("No free entries");
         free((void*)fat);
         free((void*)dir);
         return;
     }
-    i = 0;
-    for (; i < 8; i++) {
-        if (path[i] == '/' || path[i] == '\0') break;
-        name[i] = path[i];
-    }
-    for (; i < 8; i++) {
-        name[i] = ' ';
-    }
-    name[8] = '\0';
     path = strchr(path, '/') + 1;
-    if (name[0] == 0xE5)
-        name[0] == 0x05;
     uint16_t cluster = (uint16_t)findFreeCluster(fat, fatBytes / 2);
     fat[cluster] = 0xFFFF;
     memcpy(name, dir[dirIdx].fileName, 8);
     dir[dirIdx].firstCluster = cluster;
     dir[dirIdx].flags = FAT16_FLAG_DIRECTORY;
     dir[dirIdx].size = (uint32_t)bootsector->bytesPerSector * (uint32_t)bootsector->sectorsPerCluster;
+    if (dirCluster == 0)
+        diskWrite(fs->disk, rootDirStart, sectors, (byte*)dir);
+    else
+        writeChain(fs, fat, dirCluster, (byte*)dir, dir[dirIdx].size);
+
+    writeFAT(fs, fat);
+
+    free((void*)fat);
+    free((void*)dir);
+    vgaWriteln("OK");
+}
+
+void fat16CreateFile(Fat16FilesystemInfo *fs, char *path) {
+    vgaWrite("Creating file: ");
+    vgaWriteln(path);
+    if (path[0] == '/') path++;
+    Fat16BootSector *bootsector = &(fs->bootsector);
+    uint32_t fatBytes = bootsector->bytesPerSector * bootsector->sectorsPerFAT;
+    uint16_t *fat = (uint16_t*)malloc(fatBytes);
+    readFAT(fs, fat);
+
+    // Load root directory
+    Fat16DirectoryEntry *dir = (Fat16DirectoryEntry*)malloc(bootsector->rootDirCount * sizeof(Fat16DirectoryEntry));
+    uint32_t rootDirStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
+
+    uint32_t entryCount = bootsector->rootDirCount;
+    uint8_t entriesPerSector = bootsector->bytesPerSector / sizeof(Fat16DirectoryEntry);
+    uint8_t sectors = entryCount / entriesPerSector;
+    uint32_t dirCluster = 0;
+    diskRead(fs->disk, rootDirStart, sectors, (byte*)dir);
+
+    if (!traversePath(fs, &path, &dir, &dirCluster, &entryCount, fat)) {
+        vgaWriteln("Path does not exist");
+        free((void*)fat);
+        free((void*)dir);
+        return;
+    }
+
+    char name[9];
+    char extension[4];
+
+    int i = 0, dot = 0;
+    for (; i < 8; i++) {
+        if (path[i] == '.' || path[i] == '\0') break;
+        name[i] = path[i];
+    }
+    if (path[i] == '.') dot = i;
+    for (; i < 8; i++) {
+        name[i] = ' ';
+    }
+    i = dot;
+    name[8] = '\0';
+
+    if (path[i] == '.') {
+        int j = 0;
+        i++; // Skip the dot
+        for (; j < 3 && path[i] != '\0'; i++, j++) {
+            extension[j] = path[i];
+        }
+        for (; j < 3; j++) {
+            extension[j] = ' ';
+        }
+    } else {
+        for (int j = 0; j < 3; j++) {
+            extension[j] = ' ';
+        }
+    }
+    
+
+    if (name[0] == 0xE5)
+        name[0] == 0x05;
+
+    i = 0;
+    for (; i < entryCount; i++) {
+        if (!entryIsDirectory(&(dir[i]))) {
+            if (memequal(dir[i].fileName, name, 8)) {
+                vgaWriteln("File already exists");
+                free((void*)fat);
+                free((void*)dir);
+                return;
+            }
+        }
+    }
+
+    int dirIdx = -1;
+    i = 0;
+    for (; i < entryCount; i++) {
+        if (entryIsAvailable(&(dir[i]))) {
+            dirIdx = i;
+            break;
+        }
+    }
+
+    if (dirIdx < 0) {
+        vgaWriteln("No free entries");
+        free((void*)fat);
+        free((void*)dir);
+        return;
+    }
+
+    path = strchr(path, '/') + 1;
+    uint16_t cluster = (uint16_t)findFreeCluster(fat, fatBytes / 2);
+    fat[cluster] = 0xFFFF;
+
+    memcpy(name, dir[dirIdx].fileName, 8);
+    memcpy(extension, dir[dirIdx].fileExtension, 3);
+
+    dir[dirIdx].firstCluster = cluster;
+    dir[dirIdx].flags = 0;
+    dir[dirIdx].size = 0;
+
     if (dirCluster == 0)
         diskWrite(fs->disk, rootDirStart, sectors, (byte*)dir);
     else
@@ -405,11 +544,15 @@ void printRootDirectory(Fat16FilesystemInfo *fs) {
 
     Fat16DirectoryEntry *dir = (Fat16DirectoryEntry *)malloc(entryCount * sizeof(Fat16DirectoryEntry));
     diskRead(fs->disk, rootDirStart, entryCount / (bootsector->bytesPerSector / sizeof(Fat16DirectoryEntry)), (byte *)dir);
-
+    char filename[13];
+    char filename83[12];
     for (uint32_t i = 0; i < entryCount; i++) {
         if (!entryIsAvailable(&dir[i])) {
-            char filename[12]; // 8 for the name, 1 for the dot, and 3 for the extension
-            convertFilename83ToRegular(dir[i].fileName, filename);
+            
+            createFilename83(dir[i].fileName, dir[i].fileExtension, filename83);
+            convertFilename83ToRegular(filename83, filename);
+            if (entryIsDirectory(&dir[i]))
+                append(filename, '/');
             vgaWriteln(filename);
         }
     }

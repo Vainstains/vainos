@@ -43,22 +43,15 @@ void main() {
     fat16Setup(&diskInfo, &fs);
 
     vgaNextLine();
-    fat16CreateFolder(&fs, "/hello");
+    fat16CreateDirectory(&fs, "/hello");
     vgaNextLine();
-
-    //printMemoryInfo();
-    
-    //while(1);
-
-
-    fat16CreateFolder(&fs, "/hello/world");
+    fat16CreateDirectory(&fs, "/hello");
     vgaNextLine();
-    fat16CreateFolder(&fs, "/world/hello/world/hello");
+    fat16CreateDirectory(&fs, "/hello/dir");
     vgaNextLine();
-    fat16CreateFolder(&fs, "/abc/def");
-
+    fat16CreateDirectory(&fs, "/world/hello/world/hello");
+    vgaNextLine();
+    fat16CreateFile(&fs, "world.txt");
+    vgaNextLine();
     printRootDirectory(&fs);
-    //vgaNextLine();
-
-    //vgaWriteln("Checkpoint :)");
 }
