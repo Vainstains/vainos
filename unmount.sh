@@ -1,2 +1,3 @@
 #! /bin/bash
-fusermount -u /mnt/vainos
+sudo umount /mnt/vainos
+sudo rmdir /mnt/vainos

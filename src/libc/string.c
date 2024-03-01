@@ -105,3 +105,18 @@ int findchar(char s[], char c) {
     }
     return -1;
 }
+
+char tolower(char c) {
+    if (c >= 'A' && c <= 'Z') {
+        return c + ('a' - 'A');
+    }
+    return c;
+}
+
+bool strequal_nocase(char *a, char *b, int nbytes) {
+    for (int i = 0; i < nbytes; i++) {
+        if (tolower(a[i]) != tolower(b[i]))
+            return false;
+    }
+    return true;
+}

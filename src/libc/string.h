@@ -31,4 +31,8 @@ char backspace(char s[]);
 /* Return the index of the first occurrence of `c` in `*s`, or -1 if not present */
 int findchar(char s[], char c);
 
+char tolower(char c);
+
+bool strequal_nocase(char *a, char *b, int nbytes);
+
 #endif // STRING_H

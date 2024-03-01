@@ -315,7 +315,7 @@ static bool traversePath(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16DirectoryE
             if (entryIsDirectory(&((*dir)[i])))
             {
                 //vgaWrite("    Possibly: "); vgaWriteStatic((*dir)[i].fileName, 8); vgaNextLine();
-                if (memequal((*dir)[i].fileName, name, 8)) {
+                if (strequal_nocase((*dir)[i].fileName, name, 8)) {
                     dirIdx = i;
                     break;
                 }
@@ -360,7 +360,7 @@ static bool createDirectory(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16Directo
     for (; i < entryCount; i++) {
         if (entryIsDirectory(&((*dir)[i])))
         {
-            if (memequal((*dir)[i].fileName, name, 8)) {
+            if (strequal_nocase((*dir)[i].fileName, name, 8)) {
                 vgaWriteln("Directory already exists");
                 return false;
             }
@@ -442,7 +442,7 @@ static bool createFile(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16DirectoryEnt
     i = 0;
     for (; i < entryCount; i++) {
         if (!entryIsDirectory(&((*dir)[i]))) {
-            if (memequal((*dir)[i].fileName, name, 8)) {
+            if (strequal_nocase((*dir)[i].fileName, name, 8)) {
                 vgaWriteln("File already exists");
                 return false;
             }
@@ -477,6 +477,89 @@ static bool createFile(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16DirectoryEnt
         writeChain(fs, fat, dirCluster, (byte*)(*dir), entryCount * sizeof(Fat16DirectoryEntry));
     
     return true;
+}
+
+static bool dirExists(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16DirectoryEntry **dir, uint32_t dirCluster, uint32_t entryCount, char *path) {
+    Fat16BootSector *bootsector = &(fs->bootsector);
+    uint32_t rootDirStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
+    uint32_t fatBytes = bootsector->bytesPerSector * bootsector->sectorsPerFAT;
+    uint8_t entriesPerSector = bootsector->bytesPerSector / sizeof(Fat16DirectoryEntry);
+    uint8_t sectors = entryCount / entriesPerSector;
+    char name[9];
+    char extension[4];
+
+    int i = 0;
+    for (; i < 8; i++) {
+        if (path[i] == '.' || path[i] == '\0') break;
+        name[i] = path[i];
+    }
+    for (; i < 8; i++) {
+        name[i] = ' ';
+    }
+    name[8] = '\0';
+    
+    if (name[0] == 0xE5)
+        name[0] == 0x05;
+        
+    i = 0;
+    for (; i < entryCount; i++) {
+        if (entryIsDirectory(&((*dir)[i]))) {
+            if (strequal_nocase((*dir)[i].fileName, name, 8)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+static bool fileExists(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16DirectoryEntry **dir, uint32_t dirCluster, uint32_t entryCount, char *path) {
+    Fat16BootSector *bootsector = &(fs->bootsector);
+    uint32_t rootDirStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
+    uint32_t fatBytes = bootsector->bytesPerSector * bootsector->sectorsPerFAT;
+    uint8_t entriesPerSector = bootsector->bytesPerSector / sizeof(Fat16DirectoryEntry);
+    uint8_t sectors = entryCount / entriesPerSector;
+    char name[9];
+    char extension[4];
+
+    int i = 0, dot = 0;
+    for (; i < 8; i++) {
+        if (path[i] == '.' || path[i] == '\0') break;
+        name[i] = path[i];
+    }
+    if (path[i] == '.') dot = i;
+    for (; i < 8; i++) {
+        name[i] = ' ';
+    }
+    i = dot;
+    name[8] = '\0';
+
+    if (path[i] == '.') {
+        int j = 0;
+        i++; // Skip the dot
+        for (; j < 3 && path[i] != '\0'; i++, j++) {
+            extension[j] = path[i];
+        }
+        for (; j < 3; j++) {
+            extension[j] = ' ';
+        }
+    } else {
+        for (int j = 0; j < 3; j++) {
+            extension[j] = ' ';
+        }
+    }
+    
+    if (name[0] == 0xE5)
+        name[0] == 0x05;
+
+    i = 0;
+    for (; i < entryCount; i++) {
+        if (entryIsFile(&((*dir)[i]))) {
+            if (strequal_nocase((*dir)[i].fileName, name, 8) && strequal_nocase((*dir)[i].fileExtension, extension, 3)) {
+                return true;
+            }
+        }
+    }
+    return false;
 }
 
 static bool readFile(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16DirectoryEntry **dir, uint32_t dirCluster, uint32_t entryCount, char *path, byte *buffer, uint32_t nbytes) {
@@ -522,7 +605,7 @@ static bool readFile(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16DirectoryEntry
     int dirIdx = -1;
     for (; i < entryCount; i++) {
         if (entryIsFile(&((*dir)[i]))) {
-            if (memequal((*dir)[i].fileName, name, 8) && memequal((*dir)[i].fileExtension, extension, 3)) {
+            if (strequal_nocase((*dir)[i].fileName, name, 8) && strequal_nocase((*dir)[i].fileExtension, extension, 3)) {
                 dirIdx = i;
                 break;
             }
@@ -583,7 +666,7 @@ static bool writeFile(Fat16FilesystemInfo *fs, uint16_t *fat, Fat16DirectoryEntr
     int dirIdx = -1;
     for (; i < entryCount; i++) {
         if (entryIsFile(&((*dir)[i]))) {
-            if (memequal((*dir)[i].fileName, name, 8) && memequal((*dir)[i].fileExtension, extension, 3)) {
+            if (strequal_nocase((*dir)[i].fileName, name, 8) && strequal_nocase((*dir)[i].fileExtension, extension, 3)) {
                 dirIdx = i;
                 break;
             }
@@ -646,7 +729,7 @@ static bool fat16CreateDirectorySingle(Fat16FilesystemInfo *fs, char *path) {
     return true;
 }
 
-void fat16Setup(DiskInfo *diskInfo, Fat16FilesystemInfo *fs) {
+bool fat16Setup(DiskInfo *diskInfo, Fat16FilesystemInfo *fs) {
     Fat16BootSector *bootsector = &(fs->bootsector);
     fs->disk = diskInfo;
     readBootsector(fs);
@@ -656,10 +739,7 @@ void fat16Setup(DiskInfo *diskInfo, Fat16FilesystemInfo *fs) {
     diskRead(diskInfo, firstFAT, 1, fatSector1);
 
     bool initialized = fatSector1[0] == bootsector->mediaDescriptorType;
-    initialized &= fatSector1[1] == 0xFF;
-    initialized &= fatSector1[2] == 0xFF;
-    initialized &= fatSector1[3] == 0xFF;
-
+    bool wasOk = true;
     if(initialized) {
         LOG("FAT16 is already ok\n");
     } else {
@@ -669,10 +749,12 @@ void fat16Setup(DiskInfo *diskInfo, Fat16FilesystemInfo *fs) {
         fatSector1[2] = 0xFF;
         fatSector1[3] = 0xFF;
         diskWrite(diskInfo, firstFAT, 1, fatSector1);
+        wasOk = false;
     }
     free((void*)fatSector1);
     fat16CreateDirectorySingle(fs, ".");
     fat16CreateDirectorySingle(fs, "..");
+    return wasOk;
 }
 
 bool fat16CreateDirectory(Fat16FilesystemInfo *fs, char *path) {
@@ -819,6 +901,48 @@ bool fat16ReadFile(Fat16FilesystemInfo *fs, char *path, byte *buffer, uint32_t n
     free((void*)dir);
     vgaWriteln("OK");
     return true;
+}
+
+bool fat16PathExists(Fat16FilesystemInfo *fs, char *path) {
+    //vgaWrite("Looking for existence file `");
+    //vgaWrite(path);
+    //vgaWrite("`... ");
+    if (path[0] == '/') path++;
+    Fat16BootSector *bootsector = &(fs->bootsector);
+    uint32_t fatBytes = bootsector->bytesPerSector * bootsector->sectorsPerFAT;
+    uint16_t *fat = (uint16_t*)malloc(fatBytes);
+    readFAT(fs, fat);
+
+    // Load root directory
+    Fat16DirectoryEntry *dir = (Fat16DirectoryEntry*)malloc(bootsector->rootDirCount * sizeof(Fat16DirectoryEntry));
+    uint32_t rootDirStart = bootsector->reservedSectors + (bootsector->fatCount * bootsector->sectorsPerFAT);
+
+    uint32_t entryCount = bootsector->rootDirCount;
+    uint8_t entriesPerSector = bootsector->bytesPerSector / sizeof(Fat16DirectoryEntry);
+    uint8_t sectors = entryCount / entriesPerSector;
+    uint32_t dirCluster = 0;
+    uint32_t parentDirCluster = 0;
+    diskRead(fs->disk, rootDirStart, sectors, (byte*)dir);
+
+    if (!traversePath(fs, fat, &dir, &parentDirCluster, &dirCluster, &entryCount, &path)) {
+        free((void*)fat);
+        free((void*)dir);
+        return false;
+    }
+    if (fileExists(fs, fat, &dir, dirCluster, entryCount, path)) {
+        free((void*)fat);
+        free((void*)dir);
+        return true;
+    }
+    if (dirExists(fs, fat, &dir, dirCluster, entryCount, path)) {
+        free((void*)fat);
+        free((void*)dir);
+        return true;
+    }
+    
+    free((void*)fat);
+    free((void*)dir);
+    return false;
 }
 
 void printRootDirectory(Fat16FilesystemInfo *fs) {

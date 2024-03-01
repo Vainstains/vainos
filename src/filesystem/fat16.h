@@ -58,11 +58,12 @@ typedef struct {
     Fat16BootSector bootsector;
 } Fat16FilesystemInfo;
 
-void fat16Setup(DiskInfo *disk, Fat16FilesystemInfo *fs);
+bool fat16Setup(DiskInfo *disk, Fat16FilesystemInfo *fs);
 bool fat16CreateDirectory(Fat16FilesystemInfo *fs, char *path);
 bool fat16CreateFile(Fat16FilesystemInfo *fs, char *path);
 bool fat16WriteFile(Fat16FilesystemInfo *fs, char *path, byte *buffer, uint32_t nbytes);
 bool fat16ReadFile(Fat16FilesystemInfo *fs, char *path, byte *buffer, uint32_t nbytes);
+bool fat16PathExists(Fat16FilesystemInfo *fs, char *path);
 void printRootDirectory(Fat16FilesystemInfo *fs);
 
 #endif // FAT16_H

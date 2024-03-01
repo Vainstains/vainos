@@ -20,6 +20,7 @@ bool fsCreateFile(FSInfo *fs, char *path) {
             fat16CreateFile((Fat16FilesystemInfo*)(fs->info), path);
             return true;
     }
+    return false;
 }
 
 bool fsCreateDirectory(FSInfo *fs, char *path) {
@@ -31,6 +32,7 @@ bool fsCreateDirectory(FSInfo *fs, char *path) {
             fat16CreateDirectory((Fat16FilesystemInfo*)(fs->info), path);
             return true;
     }
+    return false;
 }
 
 bool fsWriteFile(FSInfo *fs, char *path, byte *buffer, uint32_t nbytes) {
@@ -42,6 +44,7 @@ bool fsWriteFile(FSInfo *fs, char *path, byte *buffer, uint32_t nbytes) {
             fat16WriteFile((Fat16FilesystemInfo*)(fs->info), path, buffer, nbytes);
             return true;
     }
+    return false;
 }
 
 bool fsReadFile(FSInfo *fs, char *path, byte *buffer, uint32_t nbytes) {
@@ -53,6 +56,7 @@ bool fsReadFile(FSInfo *fs, char *path, byte *buffer, uint32_t nbytes) {
             fat16ReadFile((Fat16FilesystemInfo*)(fs->info), path, buffer, nbytes);
             return true;
     }
+    return false;
 }
 
 bool fsIsFile(FSInfo *fs, char *path) {
@@ -62,8 +66,8 @@ bool fsIsFile(FSInfo *fs, char *path) {
     {
         case FILESYSTEM_BACKEND_FAT16:
             
-            return false;
     }
+    return false;
 }
 
 bool fsPathExists(FSInfo *fs, char *path) {
@@ -72,9 +76,9 @@ bool fsPathExists(FSInfo *fs, char *path) {
     switch (fs->backend)
     {
         case FILESYSTEM_BACKEND_FAT16:
-            
-            return false;
+            return fat16PathExists((Fat16FilesystemInfo*)(fs->info), path);
     }
+    return false;
 }
 
 uint32_t fsFileSize(FSInfo *fs, char *path) {
@@ -86,6 +90,7 @@ uint32_t fsFileSize(FSInfo *fs, char *path) {
             
             return 0;
     }
+    return false;
 }
 
 void fsJoinPaths(char *pathA, char *pathB, char *pathOut) {

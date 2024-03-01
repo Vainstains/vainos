@@ -43,7 +43,22 @@ printf "\n"
 
 cd "$CUR_DIR" || exit
 
-# Run image
+# Run image to setup the rootfs. It will try to reboot automatically.
+qemu-system-i386 -D ./log.txt \
+                 -d cpu_reset \
+                 -no-reboot \
+                 -vga std \
+                 -drive id=disk,format=raw,file=bin/vainos.img
+
+mkdir vainos_mount
+sudo mount -t vfat -o loop,rw bin/vainos.img vainos_mount
+
+sudo cp -a rootfs/. vainos_mount/
+# and
+sudo umount vainos_mount
+sudo rm -rf vainos_mount
+
+# Now it is ready to boot.
 qemu-system-i386 -D ./log.txt \
                  -d cpu_reset \
                  -no-reboot \
